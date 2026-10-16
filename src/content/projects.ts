@@ -32,4 +32,6 @@ export function colorOf(p: Project): string {
 }
 
 export const hasImage = (name: string) => !!SIZES[name];
+/** largura e altura de uma imagem gerada (para o <img> reservar o lugar antes de ela chegar) */
+export const sizeOf = (name: string): { width?: string; height?: string } => (SIZES[name] ? { width: String(SIZES[name].width), height: String(SIZES[name].height) } : {});
 export const imageUrl = (name: string) => `${import.meta.env.BASE_URL}img/${name}.webp`;

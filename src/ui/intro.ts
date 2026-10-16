@@ -13,20 +13,21 @@
    Com "reduzir movimento", tudo aparece parado e a abertura é curta.
 ════════════════════════════════════════════════════════════════════ */
 import gsap from "gsap";
-import { SITE } from "../data/site";
 import { t, onLang } from "../core/i18n";
-import { wordmarkSVG } from "./wordmark";
 import { h } from "./dom";
+import { preloaderHtml } from "./preloader";
 
 export function createIntro(reduced: boolean) {
-  const mark = h("div", { class: "pre-mark", "aria-hidden": "true" },
-    h("div", { class: "pre-ghost", html: wordmarkSVG("") }),
-    h("div", { class: "pre-fill", html: wordmarkSVG("") }));
-  const place = h("span", { class: "pre-place" }, SITE.place);
-  const num = h("span", { class: "pre-num" }, SITE.coords);
-  const coords = h("p", { class: "pre-coords", title: SITE.coordsTitle }, place, num);
-  const sr = h("span", { class: "sr-only" });
-  const el = h("div", { class: "preloader", role: "status", "aria-live": "polite" }, coords, mark, sr);
+  /* desde a V2, a abertura já vem pronta no HTML (vite.config.ts, preloaderHtml): ela pinta antes do
+     JavaScript chegar (no celular lento, eram 2,6 s de tela vazia); sem ela, é montada aqui */
+  const ready = document.querySelector<HTMLElement>(".preloader");
+  const el = ready ?? h("div", { class: "preloader", role: "status", "aria-live": "polite", html: preloaderHtml() });
+  const mark = el.querySelector<HTMLElement>(".pre-mark")!;
+  const place = el.querySelector<HTMLElement>(".pre-place")!;
+  const num = el.querySelector<HTMLElement>(".pre-num")!;
+  const sr = el.querySelector<HTMLElement>(".sr-only")!;
+  /* se a abertura já estava na tela havia um tempo (rede lenta), as letras não "caem" de novo: ficam */
+  const late = !!ready && performance.now() > 900;
   onLang(() => { sr.textContent = t("loading"); });
 
   const fill = { p: 0 };
@@ -58,7 +59,7 @@ export function createIntro(reduced: boolean) {
     mark,
     /** a entrada: as coordenadas digitam e as letras caem no lugar */
     start() {
-      if (reduced) return;
+      if (reduced || late) return;
       type(place, "ABCDEFGHIJKLMNOPQRSTUVWXYZ", 80, 520);
       type(num, "0123456789", 260, 900);
       gsap.from(el.querySelectorAll(".pre-ghost .wm-l"), { y: -320, opacity: 0, duration: 1.1, stagger: 0.055, ease: "expo.out", delay: 0.15 });

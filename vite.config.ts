@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseAll, type Project } from "./src/content/parse.ts";
 import { SITE, PROFILE } from "./src/data/site.ts";
+import { preloaderHtml } from "./src/ui/preloader.ts";
 
 /* ════════════════════════════════════════════════════════════════════
    O build (V2, 16/out/2026).
@@ -55,7 +56,8 @@ function paginas(): Plugin {
       return html
         .replace(/__SITE_URL__/g, SITE_URL)
         .replace("__PERSON_JSONLD__", JSON.stringify(person).replace(/</g, "\\u003c"))
-        .replace("<!--NOSCRIPT_INDEX-->", list);
+        .replace("<!--NOSCRIPT_INDEX-->", list)
+        .replace("<!--PRELOADER-->", preloaderHtml());
     },
     closeBundle() {
       const base = path.join(outDir, "index.html");

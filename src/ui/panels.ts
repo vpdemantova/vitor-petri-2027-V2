@@ -18,7 +18,7 @@
    fecha, o foco volta para onde estava). As animações são do GSAP.
 ════════════════════════════════════════════════════════════════════ */
 import gsap from "gsap";
-import { PROJECTS, CATEGORIES, hasImage, imageUrl, type Category, type Project } from "../content/projects";
+import { PROJECTS, CATEGORIES, hasImage, imageUrl, sizeOf, type Category, type Project } from "../content/projects";
 import { PROFILE, PROFILE_ART } from "../data/site";
 import { t, tx, tp, onLang } from "../core/i18n";
 import type { PanelKind } from "../core/router";
@@ -149,7 +149,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     ? [PROFILE_ART[0], { img: "retrato", alt: { en: "Vitor P. Demantova", pt: "Vitor P. Demantova" }, caption: "Vitor P. Demantova" }, PROFILE_ART[2]]
     : PROFILE_ART;
   const figures = art.map((a) => {
-    const img = h("img", { src: imageUrl(a.img), loading: "lazy", decoding: "async" });
+    const img = h("img", { src: imageUrl(a.img), loading: "lazy", decoding: "async", ...sizeOf(a.img) });
     return { a, img, fig: h("figure", {}, img, h("figcaption", {}, a.caption)) };
   });
   const profileArt = h("div", { class: `profile-art${hasImage("retrato") ? " has-portrait" : ""}`, role: "group" }, ...figures.map((f) => f.fig));
@@ -216,13 +216,13 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       : p.category === "music" ? null : h("span", { class: "project-visit is-off" }, t("notPublished"));
     let shots: HTMLElement;
     if (p.category === "music" && !p.card) {
-      const img = h("img", { class: "is-art is-cover", alt: `${tx(p.name)}: ${tx(p.type)}` });
+      const img = h("img", { class: "is-art is-cover", alt: `${tx(p.name)}: ${tx(p.type)}`, width: "1024", height: "1448" });
       loadCoverFonts().then(() => { img.src = drawCover(document.createElement("canvas"), p).toDataURL("image/webp", 0.9); });
       shots = h("div", { class: "project-shots", tabindex: "0", role: "group", "aria-label": tx(p.name) }, img);
     } else {
       shots = h("div", { class: "project-shots", tabindex: "0", role: "group", "aria-label": tx(p.name) },
         ...p.shots.map((s, i) => h("img", {
-          src: imageUrl(s), alt: i === 0 ? `${tx(p.name)}: ${tx(p.type)}` : "", loading: i === 0 ? "eager" : "lazy", decoding: "async",
+          src: imageUrl(s), alt: i === 0 ? `${tx(p.name)}: ${tx(p.type)}` : "", loading: i === 0 ? "eager" : "lazy", decoding: "async", ...sizeOf(s),
           class: p.category === "design" ? "is-art" : undefined,
         })));
     }
