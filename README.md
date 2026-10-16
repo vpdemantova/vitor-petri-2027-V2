@@ -1,6 +1,10 @@
-# Vitor Petri
+# Vitor Petri · V2
 
-O portfólio **Vitor Petri**, construído a partir das sete telas de referência do design "Whizbigg" (logotipo, Preloader, Home / Gallery, Project, Index e Profile), com o nome trocado e os projetos de verdade dele. Feito em 11/out/2026.
+O portfólio **Vitor Petri**, construído a partir das sete telas de referência do design "Whizbigg" (logotipo, Preloader, Home / Gallery, Project, Index e Profile), com o nome trocado e os projetos de verdade dele. A V1 é de 11/out/2026 e continua em `~/www/vitor-petri-2027`. Esta V2, de 16/out/2026, é a cópia dela, com o histórico, que passou por todas as tarefas do `TAREFAS.md`.
+
+- **No ar:** https://vitor-petri-2027-v2.vercel.app (um push na `main` publica; antes, a Vercel confere os tipos, o lint e os testes).
+- **Código:** https://github.com/vpdemantova/vitor-petri-2027-V2
+- **O que foi feito, o que falta e como pedir:** `TAREFAS.md`.
 
 > **Este é um projeto à parte.** O "Portfólio do zero" (o repositório público em que o Vitor digita o código e a IA só orienta) continua sendo dele, com o guia em `blessednotebook/2 Academy/0 Aulas…/Portfólio do zero — guia e estatutos.md`. Este aqui foi construído inteiro pela IA, a pedido dele, e pode servir de referência.
 
@@ -9,36 +13,53 @@ O portfólio **Vitor Petri**, construído a partir das sete telas de referência
 ```
 npm install
 npm run dev        # http://localhost:5190
-npm run build      # confere os tipos e gera dist/
+npm run check      # tipos, lint e os 42 testes (o mesmo que a Vercel roda)
+npm run build      # gera dist/, com uma página por projeto, o sitemap e o robots
 npm run preview    # serve o dist/ em http://localhost:5191
-npm run images     # refaz as imagens de public/img a partir de media/
+npm run images     # refaz public/img, public/og e os ícones a partir de media/
+npm run analise    # o mapa do pacote em dist/stats.html
 ```
 
-- `?webgl` no fim do endereço força o WebGL2. Serve para conferir o caminho de reserva num navegador que tem WebGPU.
-- **Nada foi publicado.** Para pôr no ar:
-  1. crie um repositório no GitHub e envie;
-  2. na Vercel, crie um projeto ligado a ele, com o "Framework preset" **Vite**;
-  3. comando de build `npm run build`, pasta `dist`.
+No fim do endereço:
+- `?lang=pt` ou `?lang=en`;
+- `?webgl`, que força o WebGL2;
+- `?semabertura`;
+- `?semefeitos`, sem o pós-processamento;
+- `?hora=18`, que finge a hora de Campinas;
+- `?arrasto=1.3`, o arrasto mais sensível;
+- `?ref=3`, o modo comparação.
 
 ## O que tem
 
 | Tela de referência | Aqui |
 |---|---|
 | Logotipo | `VITOR PETRI` desenhado letra por letra no estilo do WHIZBIGG (`src/ui/wordmark.ts`) |
-| Preloader | As coordenadas de Campinas e o logotipo grande, que se enche de baixo para cima enquanto as imagens chegam e depois voa até o canto |
-| Home / Gallery | Os projetos como cartões em profundidade, no brilho lavanda; a etiqueta "Nome ↗ · VIEW PROJECT" presa ao canto do cartão da vez; o botão "Contact" |
-| Project | O vidro claro com nome, ROLE / TYPE / STACK / YEAR, VISIT WEBSITE, a descrição e as imagens (as páginas inteiras) rolando |
-| Index | O painel branco com os filtros (All, Websites, Design, Experiments) e a tabela. A linha sob o mouse leva a galeria até aquele projeto, à direita |
-| Profile | O texto em serifa à esquerda, uma composição com três peças dele e as duas linhas embaixo à direita |
-| Contact | A pílula vira o cartão "Get in touch!", com o e-mail e as redes |
+| Preloader | As coordenadas de Campinas, que "digitam", e o logotipo grande. Ele se forma de partículas enquanto as imagens chegam (sem placa de vídeo, se enche de baixo para cima) e depois voa até o canto. Vem pronto no HTML, para pintar antes do JavaScript |
+| Home / Gallery | Os 21 projetos como cartões em profundidade, no brilho lavanda; a etiqueta "Nome ↗ · VIEW PROJECT" presa ao canto do cartão da vez; o botão "Contact"; no pé, o contador, a Sala, o Som e o idioma |
+| Project | O vidro claro com nome, ROLE / TYPE / STACK / YEAR, VISIT WEBSITE, a descrição, anterior e próximo, e as imagens rolando. Nasce do retângulo do cartão. Nas obras de música, o tocador e a capa desenhada |
+| Index | O painel branco com os filtros (All, Websites, Design, Experiments, Music), que valem também para a galeria, a busca e a tabela. A linha sob o mouse leva a galeria até aquele projeto |
+| Profile | O texto em serifa à esquerda, a composição com três peças dele (o retrato entra no meio, quando houver) e as duas linhas embaixo à direita |
+| Contact | A pílula vira o cartão "Get in touch!", com o e-mail, o WhatsApp e as redes |
 
-Endereços: `#/index`, `#/profile` e `#/project/<id>` (o botão de voltar funciona, e um link leva direto a um projeto).
+Além das telas:
+- o português, no botão PT/EN, com a troca animada;
+- a sala (R): a fila vira um corredor;
+- o som (S): uma nota por cartão e a prévia da gravação;
+- o cursor próprio;
+- a dica da primeira visita;
+- os atalhos (?);
+- o modo comparação (`?ref=N`).
+
+Endereços: `/index`, `/profile` e `/project/<id>`. O voltar do navegador funciona, e os links antigos, com `#/`, continuam valendo.
 
 Teclado e acessibilidade:
-- as setas (ou PageUp e PageDown) passam de projeto, e Enter abre o da vez;
+- as setas (ou PageUp e PageDown) passam de projeto, e Enter abre o da vez; na ficha, ← e → passam de ficha;
+- I, P, C, R, S, L e ? abrem o índice, o perfil, o contato, a sala, o som, a língua e os atalhos;
 - os painéis são diálogos: o Tab fica dentro, Esc fecha e o foco volta para onde estava;
+- o primeiro Tab mostra "pular para o índice";
 - um leitor de tela ouve o nome do projeto da vez;
-- com "reduzir movimento", nada dobra nem flutua.
+- com "reduzir movimento", nada dobra nem flutua, e não há partículas nem grão animado;
+- o axe-core não acha nenhum problema, e o Lighthouse dá 100 em acessibilidade.
 
 ## De onde saíram as medidas
 
@@ -70,44 +91,87 @@ Diferenças em relação às telas:
 - **Os nomes dos projetos são mais longos** que os das telas: no Índice, eles terminam em "…" e o nome inteiro aparece ao passar o mouse.
 - **O Perfil:** onde a tela diz "Beautiful composition, images and texts here", entrou uma composição com três peças dele.
 - **Projeto não publicado:** no lugar do link, aparece "Private" no Índice e "Not published yet" na ficha.
+- **Cinco filtros** (as telas tinham quatro): a letra deles é um pouco menor, para caberem antes do ×.
+- **O cartão de contato** é mais largo que o das telas, para o e-mail e o WhatsApp caberem numa linha cada.
+- **O cinza dos valores** é mais escuro que o das telas, porque o delas não passava no contraste (ver a VP-11 no `TAREFAS.md`).
 
 ## As técnicas
 
 - **WebGPU, com WebGL2 de reserva.** O `WebGPURenderer` do three.js escolhe o motor. Os materiais são escritos em **TSL** (a linguagem de nós do three), que vira WGSL no WebGPU e GLSL no WebGL2: o mesmo código nos dois.
-- **A galeria** (`src/gl/gallery.ts`):
-  - **a fila de cartões:** uma fila ao longo do eixo da câmera, sem fim. O cartão da vez fica no foco; os de trás ficam menores e mais escuros, em diagonais opostas;
-  - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida** (chega sem passar e sem tremer). Parada, ela **encaixa** no cartão mais perto;
-  - **a velocidade:** entra nos shaders. O cartão **dobra** (os vértices se deslocam pela curva de um seno) e as cores **se separam** nas bordas (aberração cromática);
-  - **a distância do foco depende da proporção da tela:** o cartão ocupa uns 57% da largura no computador e uns 84% no celular em pé.
-- **Imagens fora da linha principal.** O `ImageBitmapLoader` decodifica com `createImageBitmap`, já na orientação que a GPU espera, com mipmaps e filtro anisotrópico.
-- **Pontilhado (dithering)** no brilho: ±½ degrau de cor por pixel apaga os "degraus" que um degradê escuro faz em 8 bits.
-- **Resolução adaptativa:** se o quadro passa de 20 ms por um segundo, a densidade de pixels baixa um degrau (até 1); com folga, sobe de volta. O laço para quando a aba some.
-- **O 3D em pedaço separado:** a interface aparece na hora, e o three.js (uns 240 KB compactados) chega em seguida.
+- **A galeria** (`src/gl/gallery.ts`; as contas puras em `src/gl/math.ts`, com testes):
+  - **a fila:** os cartões ao longo do eixo da câmera, sem fim. O da vez fica no foco; os de trás ficam menores, mais escuros e um pouco desfocados (um mipmap mais alto), espiando pelos cantos;
+  - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto;
+  - **a velocidade:** entra nos shaders. O cartão **dobra** e as cores **se separam** nas bordas; ao assentar, um **anel** sai do centro da imagem;
+  - **os filtros:** a fila se refaz só com a categoria;
+  - **a sala:** a mesma fila, nas paredes de um corredor;
+  - **os cantos:** arredondados pela distância até a borda, no próprio shader.
+- **O fundo** (`src/gl/backdrop.ts`): o brilho medido, com pontilhado contra os degraus de 8 bits. Na abertura, acende do centro para fora; depois, muda de tom com a hora de Campinas (`src/gl/hour.ts`) e puxa de leve para o tom do cartão da vez.
+- **O pós-processamento** (`src/gl/post.ts`): o bloom só com o gesto e um grão de filme fino.
+- **As partículas da abertura** (`src/gl/particles.ts`): um compute shader em TSL (compute de verdade no WebGPU, transform feedback no WebGL2).
+- **Imagens fora da linha principal.** O `ImageBitmapLoader` decodifica com `createImageBitmap`, com mipmaps e filtro anisotrópico. Primeiro vêm os quatro cartões perto da vez; o resto chega depois.
+- **Resolução adaptativa:** se o quadro passa de 20 ms por um segundo, a densidade de pixels baixa um degrau; com folga, sobe de volta. O laço para quando a aba some.
+- **O 3D em pedaço separado:** a interface aparece na hora, e o three.js (uns 241 KB compactados) chega em seguida.
+- **O som** (`src/core/sound.ts`): Web Audio, sem arquivos, desligado por padrão.
 - **As animações da interface** são do GSAP:
-  - o voo do logotipo, que mede onde ele está e para onde vai (FLIP);
+  - o voo do logotipo (FLIP);
   - o Índice que sobe;
   - o Perfil que se abre de dentro para fora;
-  - o vidro da ficha;
-  - a pílula do contato, que vira cartão;
+  - a ficha que nasce do cartão;
+  - a pílula do contato que vira cartão;
   - o nome da etiqueta, que troca deslizando.
 
 ## Pôr um projeto
 
-1. A imagem vai para `media/sites/` (uma captura de 1440 × 900, e a página inteira como `<nome>-full.jpg`, se quiser) ou para `media/design/` (o arquivo da peça).
-2. `npm run images`.
-3. Um item em `src/data/projects.ts`, com nome, categoria, tipo, função, tecnologias, ano, endereço, descrição, a imagem do cartão e as imagens da ficha. A ordem desse arquivo é a ordem da galeria e do índice.
+1. A imagem vai para `media/sites/` (uma captura de 1440 × 900 e, se quiser, a página inteira como `<nome>-full.jpg`) ou para `media/design/` (o arquivo da peça). As obras de música não precisam de imagem: a capa é desenhada.
+2. `npm run images`, que gera a imagem do site, a prévia de compartilhamento e a cor do cartão.
+3. Um arquivo em `content/projects/`, com o número do lugar na fila no começo do nome (`055-meu-projeto.md` entra entre o 050 e o 060):
 
-**Regra: nada inventado.** Ano, função e tecnologias só entram quando são sabidos; o que falta fica vazio e a interface esconde o campo.
+```
+---
+name: Meu projeto
+category: websites          (websites · design · experiments · music)
+type: Personal website
+type.pt: Site pessoal       (".pt" é o português; sem ela, vale o inglês)
+role: Design & development
+role.pt: Design e desenvolvimento
+stack: Next.js, Three.js
+year: 2026                  (só se for sabido)
+url: https://…              (sem endereço: "não publicado")
+card: meu-projeto           (a imagem do cartão, sem o .webp)
+shots: meu-projeto, meu-projeto-full
+source: de onde saiu cada dado (não aparece no site)
+---
+O texto em inglês.
+
+<!-- pt -->
+O texto em português.
+```
+
+   Na música, em vez de `card` e `shots`: `instrumentation:` (e `instrumentation.pt:`) e, se houver gravação, `audio: /audio/<arquivo>.mp3` e `duration:`. Um trecho `<!-- process -->` (e `<!-- process.pt -->`) vira a seção "Processo" da ficha.
+4. `npm run check`. Os testes conferem que:
+   - a imagem existe;
+   - o ano é um ano;
+   - as duas línguas estão lá;
+   - a linha `source:` foi escrita.
+
+**Regra: nada inventado.** Ano, função e tecnologias só entram quando são sabidos; o que falta fica vazio, e a interface esconde o campo.
 
 ## Pastas
 
 ```
-media/            as imagens originais (capturas e peças de design)
-public/img/       as imagens do site, em WebP (geradas)
-scripts/          prepare-images.mjs
-src/main.ts       a página: abertura, etiqueta, contato, entradas, endereços
-src/gl/           stage (renderizador), backdrop (o brilho), gallery (os cartões)
-src/ui/           wordmark (o logotipo), panels (Índice, Perfil, Projeto), dom
-src/data/         projects (os projetos), site (perfil e contato), image-sizes.json (gerado)
-src/styles/       app.css
+content/projects/   os projetos, um arquivo cada (a ordem é o número do nome)
+media/              as imagens originais (capturas, peças de design, o retrato)
+public/img/         as imagens do site, em WebP (geradas)
+public/og/          as prévias de compartilhamento (geradas)
+public/audio/       a gravação da Chanson Antique
+scripts/            prepare-images.mjs; github-actions-ci.yml (esperando a VP-98)
+src/main.ts         liga as peças
+src/core/           router (os endereços), i18n (as línguas), input (roda, dedo, teclado), sound
+src/content/        parse (o leitor do Markdown, também usado pelo build), projects
+src/gl/             stage, backdrop, gallery, post, particles, math, hour
+src/ui/             wordmark, preloader, intro, label, contact, panels, foot, cursor, shortcuts, compare, langswitch, musiccard, dom
+src/data/           site (o perfil e o contato), image-sizes.json (gerado)
+src/styles/         app.css
+vite.config.ts      o build e as páginas de cada projeto
+vercel.json         o build na Vercel, os endereços e o cache
 ```

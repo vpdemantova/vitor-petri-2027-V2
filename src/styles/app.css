@@ -26,7 +26,7 @@
   --lavender: #c4c2ff;
   --glow: #878ee9;
   /* VP-11/VP-50: o cinza dos valores (ROLE, TYPE…) e do "Private" passa no AA (4,5:1) em qualquer fundo:
-     4,7:1 no vidro sobre o preto (o pior caso), 5,6:1 sobre o lavanda e 8,1:1 no branco
+     4,7:1 no vidro sobre o preto (o pior caso), 5,8:1 sobre o lavanda e 8,1:1 no branco
      (era #9c9ca6: 1,6:1, 2,0:1 e 2,7:1). As contas estão no TAREFAS.md */
   --muted: #4f4f59;
   --glass: rgba(228, 229, 237, 0.86);
