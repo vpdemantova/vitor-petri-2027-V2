@@ -2,6 +2,7 @@
    refeito em 16/out/2026 para a V2).
    · media/sites/: capturas de tela 1440 × 900 (o cartão e as imagens da
      ficha) e, quando houver, a página inteira (-full);
+   · media/perfil/retrato.jpg: o retrato do Perfil (VP-02), quando houver;
    · media/design/: as peças de design, nos arquivos originais (o cartaz
      do Conservatório tem 12 MB).
    Saem em public/img/, em WebP: o cartão (a textura da galeria, até
@@ -71,6 +72,11 @@ for (const f of fs.readdirSync('media/design').sort()) {
   const src = path.join('media/design', f);
   sizes[id] = await save(src, path.join(OUT, `${id}.webp`), { w: 1280, h: 1280, q: 84 });
   sizes[`${id}-full`] = await save(src, path.join(OUT, `${id}-full.webp`), { w: 2000, h: 2000, q: 84 });
+}
+/* VP-02: o retrato do Perfil (media/perfil/retrato.jpg ou .png), quando houver: vai ao meio da composição */
+if (fs.existsSync('media/perfil')) for (const f of fs.readdirSync('media/perfil').sort()) {
+  if (!/^retrato\.(jpe?g|png)$/i.test(f)) continue;
+  sizes.retrato = await save(path.join('media/perfil', f), path.join(OUT, 'retrato.webp'), { w: 1000, h: 1400, q: 84 });
 }
 /* o que não existe mais em media/ sai de public/img (uma captura trocada não fica para trás) */
 for (const f of fs.readdirSync(OUT)) if (!sizes[f.replace(/\.webp$/, '')]) { fs.unlinkSync(path.join(OUT, f)); done.push(`(apagada) ${f}`); }

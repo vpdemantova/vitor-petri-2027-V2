@@ -85,8 +85,12 @@ export function createBackdrop(scene: THREE.Scene, reduced: boolean) {
     /** a cor do cartão da vez e o quanto ela entra (até 0,12) */
     setCard: (c: THREE.Color, amt: number) => {
       c.getRGB(tmp, THREE.SRGBColorSpace);
-      uCard.value.set(tmp.r, tmp.g, tmp.b);
-      uCardAmt.value = Math.min(0.12, amt);
+      /* só o tom do cartão entra, com o brilho do lavanda medido (o maior canal = 233/255):
+         um cartão escuro não apaga o fundo, e um cinza (sem cor) não entra */
+      const mx = Math.max(tmp.r, tmp.g, tmp.b, 1e-3), mn = Math.min(tmp.r, tmp.g, tmp.b);
+      const sat = (mx - mn) / mx, k = 233 / 255 / mx;
+      uCard.value.set(tmp.r * k, tmp.g * k, tmp.b * k);
+      uCardAmt.value = Math.min(0.12, amt) * Math.min(1, sat * 1.6);
     },
     dispose: () => window.clearInterval(timer),
   };
