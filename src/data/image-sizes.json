@@ -1,94 +1,137 @@
 {
-  "editorial-full": {
-    "width": 1200,
-    "height": 5000
+  "editorial-2": {
+    "width": 1280,
+    "height": 800,
+    "color": "#a09c97"
   },
   "editorial": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#c8c5c0"
   },
   "jardim": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#547865"
   },
   "laboratorio-passaro": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#5a3e24"
   },
   "laboratorio": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#64472b"
   },
   "malha": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#18130f"
   },
   "materia-do-mundo": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#eae7df"
   },
   "notion": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#463830"
+  },
+  "portal-solar-full": {
+    "width": 1200,
+    "height": 5000,
+    "color": "#152320"
+  },
+  "portal-solar": {
+    "width": 1280,
+    "height": 800,
+    "color": "#18262a"
   },
   "primeiro-site": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#011916"
   },
-  "vitordemantova-full": {
-    "width": 1200,
-    "height": 5000
+  "vitordemantova-2": {
+    "width": 1280,
+    "height": 800,
+    "color": "#5b381d"
+  },
+  "vitordemantova-3": {
+    "width": 1280,
+    "height": 800,
+    "color": "#5679ae"
+  },
+  "vitordemantova-4": {
+    "width": 1280,
+    "height": 800,
+    "color": "#292927"
   },
   "vitordemantova": {
     "width": 1280,
-    "height": 800
+    "height": 800,
+    "color": "#2a2b29"
   },
   "cepil-logo": {
     "width": 1280,
-    "height": 647
+    "height": 647,
+    "color": "#f4f3f3"
   },
   "cepil-logo-full": {
     "width": 1408,
-    "height": 712
+    "height": 712,
+    "color": "#f4f3f3"
   },
   "dimensional-heritage": {
     "width": 1128,
-    "height": 1127
+    "height": 1127,
+    "color": "#7f7186"
   },
   "dimensional-heritage-full": {
     "width": 1128,
-    "height": 1127
+    "height": 1127,
+    "color": "#7f7186"
   },
   "lenin-leonidov": {
     "width": 595,
-    "height": 842
+    "height": 842,
+    "color": "#eeebeb"
   },
   "lenin-leonidov-full": {
     "width": 595,
-    "height": 842
+    "height": 842,
+    "color": "#eeebeb"
   },
   "poster-ccg": {
     "width": 905,
-    "height": 1280
+    "height": 1280,
+    "color": "#645c3d"
   },
   "poster-ccg-full": {
     "width": 1414,
-    "height": 2000
+    "height": 2000,
+    "color": "#645c3d"
   },
   "schoenberg-zine": {
     "width": 1247,
-    "height": 1280
+    "height": 1280,
+    "color": "#c8b074"
   },
   "schoenberg-zine-full": {
     "width": 1298,
-    "height": 1332
+    "height": 1332,
+    "color": "#c8b074"
   },
   "sun-lettering": {
     "width": 909,
-    "height": 1280
+    "height": 1280,
+    "color": "#978525"
   },
   "sun-lettering-full": {
     "width": 1421,
-    "height": 2000
+    "height": 2000,
+    "color": "#978525"
   }
 }

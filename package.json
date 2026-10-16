@@ -1,15 +1,20 @@
 {
-  "name": "vitor-petri-2027",
+  "name": "vitor-petri-2027-v2",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
-  "description": "Portfólio Vitor Petri: galeria 3D em WebGPU (com WebGL2 de reserva), a partir das telas do Whizbigg.",
+  "description": "Vitor Petri, V2: o portfólio em galeria 3D (WebGPU com WebGL2 de reserva), em inglês e português, com os projetos em Markdown.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "images": "node scripts/prepare-images.mjs"
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check": "tsc --noEmit && eslint . && vitest run",
+    "format": "prettier --write \"src/**/*.{ts,css}\"",
+    "images": "node scripts/prepare-images.mjs",
+    "analise": "ANALISE=1 vite build"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
@@ -19,9 +24,17 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.2",
     "@types/three": "^0.186.0",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "rollup-plugin-visualizer": "^7.1.1",
     "sharp": "^0.35.5",
     "typescript": "^5.9.3",
-    "vite": "^8.3.4"
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
   }
 }

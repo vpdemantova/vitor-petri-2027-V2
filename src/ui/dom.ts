@@ -16,6 +16,9 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<s
 
 /** a seta ↗ desenhada (a mesma espessura em qualquer tamanho) */
 export const ARROW = `<svg class="arrow" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 9.5 L9.5 2.5 M4 2.5 H9.5 V8"/></svg>`;
+/** tocar e pausar (o tocador da gravação) */
+export const PLAY = `<svg class="ico-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8 L10.2 6 L3 10.2 Z"/></svg>`;
+export const PAUSE = `<svg class="ico-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 1.8 H5 V10.2 H2.6 Z M7 1.8 H9.4 V10.2 H7 Z"/></svg>`;
 /** o × dos botões de fechar */
 export const CROSS = `<svg viewBox="-6 -6 12 12" aria-hidden="true"><path d="M-4 -4 L4 4 M4 -4 L-4 4"/></svg>`;
 

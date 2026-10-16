@@ -116,23 +116,34 @@ const E = (): Glyph => {
 
 const GLYPHS: Record<string, () => Glyph> = { V, I, T, O, R: Rg, P, E };
 
-/** O caminho SVG da palavra inteira e a caixa dela. */
-export function wordmarkPath(text = "VITOR PETRI"): { d: string; width: number } {
+/** As letras soltas: o desenho de cada uma e onde ela começa (para o canvas das partículas). */
+export function wordmarkGlyphs(text = "VITOR PETRI"): { glyphs: { d: string; x: number }[]; width: number } {
   let x = 0;
-  const parts: string[] = [];
+  const glyphs: { d: string; x: number }[] = [];
   const chars = [...text];
   chars.forEach((ch, i) => {
     if (ch === " ") { x += SPACE - GAP; return; }
     const g = GLYPHS[ch]?.();
     if (!g) return;
-    parts.push(`<path d="${g.d}" transform="translate(${x} 0)"/>`);
+    glyphs.push({ d: g.d, x });
     x += g.w + (i < chars.length - 1 ? GAP : 0);
   });
-  return { d: parts.join(""), width: x };
+  return { glyphs, width: x };
 }
 
-/** O SVG pronto (cor pelo "currentColor"). */
+/** O caminho SVG da palavra inteira e a caixa dela. */
+export function wordmarkPath(text = "VITOR PETRI"): { d: string; width: number } {
+  const { glyphs, width } = wordmarkGlyphs(text);
+  return { d: glyphs.map((g) => `<path d="${g.d}" transform="translate(${g.x} 0)"/>`).join(""), width };
+}
+
+/** As medidas da caixa (a altura das letras vale 1000, mais o que as redondas passam). */
+export const WORDMARK_OV = OV;
+
+/** O SVG pronto (cor pelo "currentColor"). Cada letra num grupo (a abertura as faz chegar uma a uma). */
 export function wordmarkSVG(label = "Vitor Petri", className = "wordmark"): string {
-  const { d, width } = wordmarkPath();
-  return `<svg class="${className}" viewBox="0 ${-OV} ${width} ${1000 + OV * 2}" role="img" aria-label="${label}" fill="currentColor" fill-rule="evenodd"><title>${label}</title>${d}</svg>`;
+  const { glyphs, width } = wordmarkGlyphs();
+  const d = glyphs.map((g) => `<g transform="translate(${g.x} 0)"><path class="wm-l" d="${g.d}"/></g>`).join("");
+  const a11y = label ? `role="img" aria-label="${label}"><title>${label}</title>` : `aria-hidden="true">`;
+  return `<svg class="${className}" viewBox="0 ${-OV} ${width} ${1000 + OV * 2}" fill="currentColor" fill-rule="evenodd" ${a11y}${d}</svg>`;
 }

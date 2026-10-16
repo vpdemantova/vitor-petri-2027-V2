@@ -1,0 +1,19 @@
+# A conferência no GitHub a cada envio (VP-74). Para ligar, mova este arquivo
+# para .github/workflows/ci.yml: a chave do GitHub deste Mac só tem a
+# permissão "repo", e o GitHub exige a permissão "workflow" para enviar
+# arquivos dessa pasta. Enquanto isso, a Vercel faz a mesma conferência
+# (vercel.json: npm run check antes do build).
+name: Conferência
+on: [push, pull_request]
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build

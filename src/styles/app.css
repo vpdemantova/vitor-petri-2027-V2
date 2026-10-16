@@ -11,13 +11,13 @@
    ponto na tela de abertura). O mesmo degradê está no shader (gl/backdrop)
    e aqui, por baixo, para a página nunca nascer preta.
    ════════════════════════════════════════════════════════════════════ */
-@import "@fontsource/lato/300.css";
-@import "@fontsource/lato/400.css";
-@import "@fontsource/lato/700.css";
-@import "@fontsource/cormorant-garamond/500.css";
-@import "@fontsource/cormorant-garamond/600.css";
-@import "@fontsource/cormorant-garamond/500-italic.css";
-@import "@fontsource/young-serif/400.css";
+/* VP-40: só o alfabeto latino (o português cabe nele: ã, ç, ê, õ…); o cirílico e o vietnamita não vão no build */
+@import "@fontsource/lato/latin-400.css";
+@import "@fontsource/lato/latin-700.css";
+@import "@fontsource/cormorant-garamond/latin-500.css";
+@import "@fontsource/cormorant-garamond/latin-600.css";
+@import "@fontsource/cormorant-garamond/latin-500-italic.css";
+@import "@fontsource/young-serif/latin-400.css";
 
 :root {
   --u: calc(100vw / 1920);
@@ -25,7 +25,10 @@
   --paper: #fff;
   --lavender: #c4c2ff;
   --glow: #878ee9;
-  --muted: #9c9ca6;
+  /* VP-11/VP-50: o cinza dos valores (ROLE, TYPE…) e do "Private" passa no AA (4,5:1) em qualquer fundo:
+     4,7:1 no vidro sobre o preto (o pior caso), 5,6:1 sobre o lavanda e 8,1:1 no branco
+     (era #9c9ca6: 1,6:1, 2,0:1 e 2,7:1). As contas estão no TAREFAS.md */
+  --muted: #4f4f59;
   --glass: rgba(228, 229, 237, 0.86);
   --f-serif: "Cormorant Garamond", "Cormorant", Garamond, serif;
   --f-text: "Young Serif", Georgia, serif;
@@ -140,7 +143,7 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
 .panel.is-open { visibility: visible; }
 .close {
   position: absolute; display: grid; place-items: center; padding: 0; cursor: pointer;
-  width: calc(48 * var(--u)); height: calc(48 * var(--u)); border-radius: 50%;
+  width: calc(48 * var(--u)); height: calc(48 * var(--u)); border-radius: 999px;
   border: max(1px, calc(2 * var(--u))) solid currentColor; background: transparent; color: var(--ink);
   transition: transform 0.45s var(--ease);
 }
@@ -159,7 +162,7 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
 .index-panel .close { top: calc(58 * var(--u)); right: calc(48 * var(--u)); }
 .filters { display: flex; gap: calc(28 * var(--u)); margin: 0; padding: 0; border: 0; }
 .filters label { display: inline-flex; align-items: center; gap: calc(12 * var(--u)); font: 400 calc(33 * var(--u)) / 1 var(--f-sans); cursor: pointer; }
-.filters input { appearance: none; margin: 0; width: calc(36 * var(--u)); height: calc(36 * var(--u)); border-radius: 50%; border: max(1.5px, calc(2.4 * var(--u))) solid var(--ink); background: transparent; cursor: pointer; transition: background 0.25s; }
+.filters input { appearance: none; margin: 0; width: calc(36 * var(--u)); height: calc(36 * var(--u)); border-radius: 999px; border: max(1.5px, calc(2.4 * var(--u))) solid var(--ink); background: transparent; cursor: pointer; transition: background 0.25s; }
 .filters input:checked { background: var(--ink); }
 .index-list { list-style: none; margin: calc(40 * var(--u)) 0 0; padding: 0; }
 .index-row {
@@ -221,7 +224,6 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
 }
 .project-visit .arrow { width: calc(17 * var(--u)); height: calc(17 * var(--u)); }
 .project-visit.is-off { text-decoration: none; color: var(--muted); }
-.project-desc { margin: calc(84 * var(--u)) 0 calc(40 * var(--u)); font: 400 calc(27 * var(--u)) / 1.45 var(--f-sans); color: #1d1d1d; max-width: calc(440 * var(--u)); }
 .project-shots { overflow: auto; padding: calc(39 * var(--u)) 0 calc(60 * var(--u)); scrollbar-width: none; display: grid; gap: calc(20 * var(--u)); align-content: start; }
 .project-shots::-webkit-scrollbar, .project-info::-webkit-scrollbar { display: none; }
 .project-shots img { display: block; width: 100%; height: auto; border-radius: 2px; background: rgba(255, 255, 255, 0.35); }
@@ -248,6 +250,171 @@ html.has-panel .contact-pill { opacity: 0 !important; pointer-events: none; }
 /* o que só existe para quem lê com leitor de tela */
 .live { position: absolute; }
 
+/* ════════════════════════════════════════════════════════════════════
+   O QUE A V2 SOMOU (16/out/2026)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* VP-51: pular para o índice (aparece só com o Tab) */
+.skip {
+  position: fixed; left: 16px; top: 16px; z-index: 100; padding: 12px 18px; border-radius: 999px;
+  background: var(--paper); color: var(--ink); font: 700 15px/1 var(--f-sans); text-decoration: none;
+  transform: translateY(-160%); transition: transform 0.3s var(--ease);
+}
+.skip:focus-visible { transform: none; }
+
+/* o logotipo: cada letra é um grupo (a abertura as faz cair) */
+.wordmark .wm-l { transform-box: fill-box; }
+
+/* a abertura com partículas: o SVG cheio espera o fim (as partículas enchem) */
+.preloader.has-particles .pre-fill { opacity: 0; }
+.preloader.has-particles .pre-ghost { opacity: 0.1; }
+
+/* a etiqueta de um projeto sem endereço: o nome não é link */
+.label-name.is-off { cursor: default; }
+.label-name.is-off .arrow { display: none; }
+
+/* ── o pé, à direita: o contador, a sala, o som e o idioma ── */
+.foot {
+  position: fixed; right: calc(70 * var(--u)); bottom: calc(32 * var(--u)); z-index: 21;
+  display: flex; align-items: center; gap: calc(36 * var(--u));
+  color: var(--lavender); font-family: var(--f-serif); font-weight: 500;
+}
+html.has-panel .foot { opacity: 0 !important; pointer-events: none; }
+.foot-counter { margin: 0; font-size: calc(34 * var(--u)); letter-spacing: 0.01em; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.foot-cat { text-transform: uppercase; font-size: 0.72em; letter-spacing: 0.06em; }
+.foot-ctl { display: flex; gap: calc(6 * var(--u)); }
+.foot-btn {
+  position: relative; display: inline-flex; align-items: center; gap: calc(8 * var(--u));
+  min-height: calc(44 * var(--u)); padding: 0 calc(14 * var(--u)); border: 0; border-radius: 999px; background: transparent;
+  color: var(--lavender); font: 500 calc(26 * var(--u)) / 1 var(--f-serif); text-transform: uppercase; letter-spacing: 0.04em;
+  cursor: pointer; transition: background 0.3s, color 0.3s;
+}
+.foot-btn:hover { background: rgba(196, 194, 255, 0.12); }
+.foot-btn[aria-pressed="true"] { background: var(--lavender); color: var(--ink); }
+/* as três barrinhas do som: paradas desligado, dançando ligado */
+.foot-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 0.72em; }
+.foot-bars i { width: 2px; height: 30%; background: currentColor; border-radius: 1px; }
+.foot.is-sound .foot-bars i { animation: foot-bar 0.9s ease-in-out infinite alternate; }
+.foot.is-sound .foot-bars i:nth-child(2) { animation-delay: -0.3s; }
+.foot.is-sound .foot-bars i:nth-child(3) { animation-delay: -0.6s; }
+@keyframes foot-bar { from { height: 25%; } to { height: 100%; } }
+
+/* ── a dica da primeira visita (VP-23) ── */
+.hint {
+  position: fixed; left: 50%; bottom: calc(40 * var(--u)); z-index: 14; margin: 0;
+  display: flex; align-items: center; gap: calc(16 * var(--u)); transform: translate(-50%, 12px);
+  color: var(--paper); font: 400 calc(19 * var(--u)) / 1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase;
+  opacity: 0; pointer-events: none; transition: opacity 0.6s, transform 0.8s var(--ease); white-space: nowrap;
+}
+.hint.is-on { opacity: 0.86; transform: translate(-50%, 0); }
+html.has-panel .hint { opacity: 0 !important; }
+.hint-b { color: var(--lavender); font: italic 500 calc(24 * var(--u)) / 1 var(--f-serif); text-transform: none; letter-spacing: 0.01em; }
+.hint-line { position: relative; width: 1.5px; height: calc(46 * var(--u)); background: rgba(255, 255, 255, 0.25); overflow: hidden; }
+.hint-line::after { content: ""; position: absolute; left: 0; right: 0; top: -40%; height: 40%; background: var(--paper); animation: hint-run 1.8s var(--ease) infinite; }
+.hint.is-still .hint-line::after { animation: none; top: 30%; }
+@keyframes hint-run { to { top: 100%; } }
+
+/* ── o cursor próprio (VP-15) ── */
+.cursor { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; will-change: transform; }
+.cursor::before {
+  content: ""; position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 999px;
+  border: 1.5px solid var(--paper); background: transparent; transition: width 0.4s var(--ease), height 0.4s var(--ease), margin 0.4s var(--ease), background 0.3s, border-color 0.3s, opacity 0.3s;
+}
+.cursor-label {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); color: var(--ink);
+  font: 700 12px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; opacity: 0; transition: opacity 0.25s;
+}
+.cursor[data-state="off"] { opacity: 0; }
+.cursor[data-state="view"]::before { width: 92px; height: 92px; margin: -46px 0 0 -46px; background: var(--paper); }
+.cursor[data-state="view"] .cursor-label { opacity: 1; }
+.cursor[data-state="go"]::before { width: 52px; height: 52px; margin: -26px 0 0 -26px; background: rgba(255, 255, 255, 0.86); }
+.cursor[data-state="go"] .cursor-label { opacity: 1; font-size: 18px; letter-spacing: 0; }
+.cursor[data-state="drag"]::before { width: 14px; height: 14px; margin: -7px 0 0 -7px; background: var(--paper); }
+html.has-cursor #gl { cursor: none; }
+
+/* ── os atalhos (VP-25) ── */
+.keys {
+  position: fixed; left: 50%; top: 50%; z-index: 50; width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto;
+  transform: translate(-50%, -50%); padding: 28px 30px 22px; border-radius: 28px;
+  background: var(--paper); color: var(--ink); box-shadow: 0 30px 80px rgba(10, 10, 40, 0.45);
+  visibility: hidden;
+}
+.keys.is-open { visibility: visible; }
+.keys-title { margin: 0 0 14px; font: italic 500 30px/1 var(--f-serif); }
+.keys-list { margin: 0; display: grid; gap: 0; }
+.keys-list > div { display: grid; grid-template-columns: 112px 1fr; align-items: center; min-height: 40px; border-top: 1.5px solid #2a2a2a; }
+.keys-list > div:last-child { border-bottom: 1.5px solid #2a2a2a; }
+.keys-list dt { display: flex; gap: 6px; }
+.keys-list dd { margin: 0; font: 400 16px/1.2 var(--f-sans); }
+kbd {
+  display: inline-grid; place-items: center; min-width: 30px; height: 28px; padding: 0 8px; border-radius: 999px;
+  border: 1.5px solid var(--ink); font: 700 12px/1 var(--f-sans); letter-spacing: 0.04em;
+}
+
+/* ── o Índice: a busca (VP-26) e a música ── */
+/* os filtros numa linha só e a busca embaixo deles (lado a lado, o "Music" caía para a linha de baixo) */
+.index-head { display: flex; flex-direction: column; align-items: flex-start; gap: calc(22 * var(--u)); padding-right: calc(112 * var(--u)); }
+/* cinco filtros (as telas tinham quatro): a letra um pouco menor, para caberem antes do × */
+.filters { flex-wrap: nowrap; row-gap: calc(14 * var(--u)); gap: calc(22 * var(--u)); }
+.index-panel .filters label { font-size: calc(30 * var(--u)); }
+.index-search { display: flex; align-items: center; width: calc(330 * var(--u)); min-width: 160px; }
+.index-search-input {
+  width: 100%; min-height: calc(46 * var(--u)); padding: 0 0 calc(4 * var(--u)); border: 0; border-bottom: max(1.5px, calc(2.4 * var(--u))) solid var(--ink);
+  background: transparent; color: var(--ink); font: 400 calc(28 * var(--u)) / 1 var(--f-sans); border-radius: 0; outline-offset: 6px;
+}
+.index-search-input::placeholder { color: var(--muted); text-transform: uppercase; letter-spacing: 0.02em; }
+.index-search-input::-webkit-search-cancel-button { cursor: pointer; }
+.index-empty { margin: calc(40 * var(--u)) 0 0; font: italic 500 calc(34 * var(--u)) / 1.2 var(--f-serif); color: var(--muted); }
+.index-visit-slot { min-width: 0; display: flex; }
+button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; text-transform: uppercase; }
+.ico-play { width: 0.7em; height: 0.7em; flex: none; fill: currentColor; }
+
+/* ── a ficha: o tocador, o processo, anterior e próximo ── */
+.project-player { display: flex; align-items: center; gap: calc(18 * var(--u)); margin: calc(40 * var(--u)) 0 0; }
+.player-btn {
+  display: inline-flex; align-items: center; gap: calc(10 * var(--u)); flex: none;
+  height: calc(52 * var(--u)); min-height: 40px; padding: 0 calc(22 * var(--u)) 0 calc(18 * var(--u)); border: 0; border-radius: 999px;
+  background: var(--ink); color: var(--paper); font: 700 calc(15 * var(--u)) / 1 var(--f-sans); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;
+}
+.player-btn .ico-play { width: 12px; height: 12px; }
+.player-track { flex: 1; min-width: 0; display: grid; gap: calc(6 * var(--u)); }
+.player-bar { width: 100%; margin: 0; accent-color: var(--ink); height: 24px; cursor: pointer; }
+.player-time { font: 400 calc(17 * var(--u)) / 1 var(--f-sans); color: #2b2b2b; font-variant-numeric: tabular-nums; }
+.project-desc p { margin: 0 0 0.8em; }
+.project-desc { margin: calc(70 * var(--u)) 0 calc(30 * var(--u)); font: 400 calc(27 * var(--u)) / 1.45 var(--f-sans); color: #1d1d1d; max-width: calc(440 * var(--u)); }
+.project-process { margin: 0 0 calc(30 * var(--u)); max-width: calc(440 * var(--u)); font: 400 calc(23 * var(--u)) / 1.45 var(--f-sans); color: #1d1d1d; }
+.project-process h3 { margin: 0 0 calc(12 * var(--u)); font: 400 calc(22 * var(--u)) / 1 var(--f-sans); text-transform: uppercase; color: #262626; }
+.project-process p { margin: 0 0 0.8em; }
+.project-nav { display: grid; grid-template-columns: 1fr 1fr; gap: calc(16 * var(--u)); margin: calc(40 * var(--u)) 0 calc(40 * var(--u)); padding-top: calc(20 * var(--u)); border-top: max(1.5px, calc(2.4 * var(--u))) solid #2a2a2a; }
+.project-step { display: grid; gap: calc(6 * var(--u)); min-width: 0; padding: calc(6 * var(--u)) 0; text-decoration: none; color: var(--ink); }
+.project-step.is-next { text-align: right; }
+.project-step-k { font: 400 calc(18 * var(--u)) / 1 var(--f-sans); text-transform: uppercase; letter-spacing: 0.04em; color: #262626; }
+.project-step-name { font: italic 500 calc(26 * var(--u)) / 1.1 var(--f-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.project-step:hover .project-step-name { text-decoration: underline; text-underline-offset: 0.16em; }
+.project-shots img.is-cover { box-shadow: 0 14px 50px rgba(20, 20, 40, 0.25); border-radius: 0; }
+
+/* ── o contato: o WhatsApp (VP-06) ── */
+/* o cartão mais largo que o das telas: o e-mail e o WhatsApp cabem numa linha cada */
+.contact-card { width: calc(372 * var(--u)); }
+.contact-mail { font-size: calc(25 * var(--u)); }
+.contact-wa { display: flex; align-items: center; gap: calc(8 * var(--u)); margin-top: calc(10 * var(--u)); font-size: calc(19 * var(--u)); text-decoration: none; color: #2b2b2b; white-space: nowrap; }
+.contact-wa-k { font-weight: 700; color: var(--ink); }
+.contact-wa:hover span:last-of-type { text-decoration: underline; }
+.contact-wa .arrow { width: calc(14 * var(--u)); height: calc(14 * var(--u)); }
+
+/* ── o perfil com o retrato (VP-02) ── */
+.profile-art.has-portrait figure:nth-child(2) img { box-shadow: 0 calc(24 * var(--u)) calc(60 * var(--u)) rgba(20, 20, 50, 0.24); }
+
+/* ── a troca de idioma (VP-01) ── */
+.lt-out { animation: lt-out 0.26s cubic-bezier(0.55, 0, 1, 0.45) var(--lt-d, 0ms) both; }
+.lt-in { animation: lt-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) var(--lt-d, 0ms) both; }
+@keyframes lt-out { to { opacity: 0; transform: translateY(-0.4em); filter: blur(4px); } }
+@keyframes lt-in { from { opacity: 0; transform: translateY(0.45em); filter: blur(4px); } }
+
+/* ── o modo comparação (VP-10) ── */
+.ref-img { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; z-index: 99; mix-blend-mode: difference; opacity: 0.5; }
+.ref-info { position: fixed; left: 12px; bottom: 12px; z-index: 100; margin: 0; padding: 6px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.8); color: #fff; font: 12px/1.3 var(--f-sans); pointer-events: none; }
+
 /* ── celular e janelas estreitas ─────────────────────────────────────── */
 @media (max-width: 760px) {
   :root { --m: calc(100vw / 390); }
@@ -269,7 +436,7 @@ html.has-panel .contact-pill { opacity: 0 !important; pointer-events: none; }
   .index-panel { left: 0; right: 0; width: auto; top: 64px; border-radius: 28px 28px 0 0; padding: 26px 16px 32px; }
   .index-panel .close { top: 18px; right: 16px; }
   .filters { flex-wrap: wrap; gap: 10px 16px; padding-right: 52px; }
-  .filters label { font-size: 16px; gap: 7px; }
+  .filters label, .index-panel .filters label { font-size: 16px; gap: 7px; }
   .filters input { width: 18px; height: 18px; border-width: 1.5px; }
   .index-list { margin-top: 22px; }
   .index-row { grid-template-columns: 1fr auto; grid-template-areas: "name year" "type visit"; row-gap: 6px; padding: 12px 0; min-height: 0; border-top-width: 1.5px; }
@@ -298,7 +465,6 @@ html.has-panel .contact-pill { opacity: 0 !important; pointer-events: none; }
   .project-meta dd { font-size: 11.5px; margin-top: 3px; max-width: none; }
   .project-visit { font-size: 16px; }
   .project-visit .arrow { width: 11px; height: 11px; }
-  .project-desc { margin: 18px 0 18px; font-size: 16px; max-width: none; }
   .project-shots { overflow: visible; padding: 0 12px 16px; gap: 10px; }
   .project-shots img.is-art { max-height: none; }
   .pre-coords { left: 16px; top: 76px; gap: 8px; }
@@ -306,6 +472,44 @@ html.has-panel .contact-pill { opacity: 0 !important; pointer-events: none; }
   .pre-num { font-size: 22px; }
   .pre-mark { left: 16px; top: 106px; }
   .pre-mark .wordmark { height: auto; width: calc(100vw - 32px); }
+
+  /* ── a V2 no celular ── */
+  .foot { right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); gap: 8px; }
+  .foot-counter { font-size: 17px; }
+  .foot-cat { display: none; }
+  .foot-ctl { gap: 2px; }
+  .foot-btn { min-height: 44px; min-width: 44px; justify-content: center; padding: 0 9px; font-size: 14px; }
+  .foot-btn:not(.foot-lang):not(.foot-sound) { display: none; }
+  .foot-sound-t { display: none; }
+  .foot-bars { height: 14px; gap: 3px; }
+  .hint { bottom: 76px; font-size: 11px; gap: 10px; }
+  .hint-b { display: none; }
+  .hint-line { height: 30px; }
+  .index-head { padding-right: 52px; gap: 12px; align-items: stretch; }
+  .index-head .filters { flex-wrap: wrap; }
+  .index-search { width: auto; }
+  .filters label { min-height: 44px; }
+  .index-search { flex: 1 1 100%; }
+  .index-search-input { font-size: 16px; min-height: 40px; }
+  .index-empty { font-size: 20px; }
+  .index-visit-slot { grid-area: visit; justify-self: end; }
+  .index-visit { min-height: 32px; align-items: center; }
+  .index-name { min-height: 32px; }
+  .close { width: 44px; height: 44px; }
+  .project-panel .close { width: 44px; height: 44px; }
+  .project-player { margin-top: 18px; gap: 12px; }
+  .player-btn { height: 44px; font-size: 12px; padding: 0 16px 0 14px; }
+  .player-time { font-size: 12px; }
+  .project-desc { margin: 18px 0 14px; font-size: 16px; max-width: none; }
+  .project-process { font-size: 15px; max-width: none; }
+  .project-process h3 { font-size: 13px; }
+  .project-nav { margin: 18px 0 20px; padding-top: 12px; gap: 12px; border-top-width: 1.5px; }
+  .project-step { min-height: 44px; }
+  .project-step-k { font-size: 11px; }
+  .project-step-name { font-size: 17px; }
+  .contact-wa { font-size: 14px; margin-top: 8px; }
+  .contact-wa .arrow { width: 9px; height: 9px; }
+  .contact-socials a { display: inline-block; padding: 3px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

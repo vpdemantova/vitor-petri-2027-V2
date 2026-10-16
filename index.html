@@ -4,17 +4,39 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Vitor Petri</title>
-    <meta name="description" content="Vitor Petri: music, design, photography and writing. Websites, design and experiments, from Campinas, Brazil." />
+    <meta name="description" content="Vitor Petri: music, design, photography and writing. Websites, design, experiments and compositions, from Campinas, Brazil." />
     <meta name="theme-color" content="#000000" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23000'/%3E%3Cpath fill='%23fff' d='M14 14h12l6 26 6-26h12L41 52H23z'/%3E%3C/svg%3E" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="__SITE_URL__/" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- a prévia de compartilhamento (VP-60); cada projeto tem a sua, gerada no build (VP-61) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Vitor Petri" />
+    <meta property="og:title" content="Vitor Petri" />
+    <meta property="og:description" content="Music, design, photography and writing. Websites, design, experiments and compositions, from Campinas, Brazil." />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/og/site.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- VP-62: quem é, para a busca -->
+    <script type="application/ld+json">__PERSON_JSONLD__</script>
   </head>
   <body>
+    <!-- VP-51: quem não vê a galeria vai direto para a lista -->
+    <a class="skip" href="/index" data-link>Skip to the index of projects</a>
     <!-- o 3D (galeria e o brilho do fundo) -->
     <canvas id="gl" aria-hidden="true"></canvas>
     <!-- a interface; montada por src/main.ts -->
     <div id="app"></div>
     <noscript>
-      <p class="noscript">Vitor Petri: this site needs JavaScript to show the gallery. Contact: vpdemantova@gmail.com</p>
+      <div class="noscript">
+        <p>Vitor Petri: this site needs JavaScript to show the gallery. Contact: <a href="mailto:vpdemantova@gmail.com">vpdemantova@gmail.com</a></p>
+        <!--NOSCRIPT_INDEX-->
+      </div>
     </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>

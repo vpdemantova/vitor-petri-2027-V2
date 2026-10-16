@@ -9,6 +9,8 @@
      densidade de pixels baixa um degrau (até 1); se sobra folga por
      alguns segundos, sobe de volta.
    · O laço para quando a aba some (nada roda escondido).
+   · Quem quiser desenhar de outro jeito (o pós-processamento, gl/post.ts)
+     troca a função de desenhar com setRender.
 ════════════════════════════════════════════════════════════════════ */
 import * as THREE from "three/webgpu";
 
@@ -18,6 +20,8 @@ export interface Stage {
   camera: THREE.PerspectiveCamera;
   backend: "WebGPU" | "WebGL2";
   onFrame: (fn: (dt: number, t: number) => void) => void;
+  /** troca o desenho do quadro (o padrão é renderer.render(scene, camera)) */
+  setRender: (fn: () => void) => void;
   start: () => void;
 }
 
@@ -50,13 +54,14 @@ export async function createStage(canvas: HTMLCanvasElement): Promise<Stage> {
 
   const frames: ((dt: number, t: number) => void)[] = [];
   let last = performance.now(), slow = 0, fast = 0, running = false;
+  let render = () => renderer.render(scene, camera);
   const loop = (now: number) => {
     if (!running) return;
     const dt = Math.min(0.05, (now - last) / 1000);
     const ms = now - last;
     last = now;
     for (const f of frames) f(dt, now / 1000);
-    renderer.render(scene, camera);
+    render();
     /* o ajuste fino da resolução */
     if (ms > 20) { slow += dt; fast = 0; } else { fast += dt; slow = Math.max(0, slow - dt * 0.5); }
     if (slow > 1 && dpr > 1) { dpr = Math.max(1, dpr - 0.25); slow = 0; resize(); }
@@ -74,5 +79,5 @@ export async function createStage(canvas: HTMLCanvasElement): Promise<Stage> {
     else start();
   });
 
-  return { renderer, scene, camera, backend, onFrame: (fn) => frames.push(fn), start };
+  return { renderer, scene, camera, backend, onFrame: (fn) => frames.push(fn), setRender: (fn) => { render = fn; }, start };
 }
