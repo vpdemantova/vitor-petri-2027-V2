@@ -258,6 +258,10 @@
   3. os materiais dos 22 cartões e da sala compilam antes do primeiro quadro (`compileAsync`), em vez de travar o primeiro quadro.
 
   Não fiz o pré-carregamento do three.js: ele disputaria a rede com a fonte da abertura, que é a maior pintura, e a primeira pintura já não depende do JavaScript. O que sobra está na VP-103.
+
+  **No endereço público, depois de publicar** (19/out, medido do Windows): celular 81 a 83 (a maior pintura em 1,4 a 1,7 s), computador 97/100/100/100, e a página `/pt/project/laboratorio` com 100 em acessibilidade, boas práticas e SEO.
+
+  **Os números dependem da máquina que mede.** Em 16/out, no Mac, o Lighthouse dava 100 no celular para a versão de antes; aqui no Windows, essa mesma versão dava 63. O celular simulado multiplica o trabalho do processador de quem mede, e o 3D pesa diferente em cada placa. Compare sempre na mesma máquina (de preferência a mesma em que mediu o "antes").
 - [-] **VP-100** · [P3 · pequena] **A gravação mais leve.** *Descartada (19/out/2026).* O único arquivo da Chanson Antique é o próprio MP3 de 128 kbps (o mesmo do vitordemantova.com). Passá-lo para AAC de 96 kbps seria recodificar o que já foi comprimido: o som pioraria para economizar 0,8 MB, e esse arquivo só baixa quando alguém aperta o play. Volta se houver o original sem perda (WAV): daí sai um AAC melhor e menor.
 - [x] **VP-101** · [P3 · média] **As páginas em português para a busca.** *19/out/2026.*
   - Os mesmos endereços com `/pt` na frente: `/pt`, `/pt/index`, `/pt/profile` e `/pt/project/<id>`. O build gera cada um com `lang="pt-BR"`, o título, a descrição e o `<noscript>` em português, e `og:locale` `pt_BR`.
@@ -340,5 +344,6 @@
 | 19/out/2026 | A sala no celular; o GitHub Actions ligado; `npm run analise` funcionando no Windows; o modo comparação lendo de `ref/`, fora do git; as telas de referência achadas (esperando o seu ok). | VP-94, 96, 98 |
 | 19/out/2026 | Lighthouse local, celular simulado: de 63 para 82 (a maior pintura de 4,1 s para 1,9 s). Computador: 97/100/100/100. Acessibilidade, boas práticas e SEO em 100, também na página em português. | VP-99 |
 | 19/out/2026 | `npm run images` só refaz o que mudou. 46 testes. Descartada: a VP-100 (o MP3 é o único original). Abertas: VP-103 a VP-106, e a seção de rotinas (§14). | VP-102, §13, §14 |
+| 19/out/2026 | **Publicado** (be07979): o GitHub Actions passou e a Vercel pôs no ar sozinha. Conferido no endereço público: o vídeo toca no cartão da vez, `/pt` em português, no celular os cartões de 800 px, console limpo. Lighthouse público (do Windows): celular 81–83, computador 97/100/100/100. | VP-80, 81, 98, 99 |
 
 *Último número em uso: VP-106. O próximo é VP-107 (ou o primeiro número livre da categoria).*
