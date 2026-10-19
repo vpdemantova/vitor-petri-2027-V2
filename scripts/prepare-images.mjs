@@ -18,8 +18,20 @@
      brilho lavanda medido das telas, o logotipo e o cartão;
    · os ícones (VP-16): public/favicon.svg, apple-touch-icon.png (180 px) e
      icon-512.png.
-   Rodar: npm run images */
+   · (VP-99, 19/out/2026) o cartão também em 800 px (<id>-m.webp), para
+     telas pequenas: menos para baixar e para mandar à placa de vídeo.
+   · (VP-102, 19/out/2026) SÓ REFAZ O QUE MUDOU. Cada saída guarda a
+     impressão (sha1) do arquivo e das opções que a geraram, em
+     scripts/imagens-feitas.json; se a impressão é a mesma e a saída existe,
+     ela fica como está. Antes, cada rodada recodificava as ~80 imagens, e
+     o WebP e o JPEG mudam alguns bytes de uma máquina para outra: o git via
+     tudo como mudado.
+   Rodar: npm run images
+          npm run images -- --tudo      refaz tudo
+          npm run images -- --semente   só anota as impressões das saídas que
+                                        já existem (para começar sem recodificar) */
 import sharp from 'sharp';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { wordmarkPath } from '../src/ui/wordmark.ts';
@@ -29,6 +41,28 @@ const OUT = 'public/img';
 fs.mkdirSync(OUT, { recursive: true });
 fs.mkdirSync('public/og', { recursive: true });
 const done = [];
+let kept = 0;
+
+/* ── as impressões (VP-102) ── */
+const CACHE = 'scripts/imagens-feitas.json';
+const TUDO = process.argv.includes('--tudo');
+const SEMENTE = process.argv.includes('--semente');
+const before = !TUDO && fs.existsSync(CACHE) ? JSON.parse(fs.readFileSync(CACHE, 'utf8')) : {};
+const after = {};
+/** a impressão de um conjunto de entradas (buffers ou textos); mude VERSAO para refazer tudo de uma vez */
+const VERSAO = '1';
+const stamp = (...parts) => {
+  const h = crypto.createHash('sha1').update(VERSAO);
+  for (const p of parts) h.update(typeof p === 'string' ? p : p ?? '');
+  return h.digest('hex').slice(0, 16);
+};
+/** true quando a saída existe e foi feita das mesmas entradas (então fica como está) */
+const upToDate = (dst, key) => {
+  const k = dst.split(path.sep).join('/');
+  after[k] = key;
+  if (!fs.existsSync(dst)) return false;
+  return SEMENTE || before[k] === key;
+};
 
 /** A cor que representa a imagem: a média ponderada pela saturação (cinza e preto pesam pouco). */
 async function accent(file) {
@@ -49,14 +83,24 @@ async function accent(file) {
 }
 
 async function save(src, dst, opts) {
-  const img = sharp(src, { limitInputPixels: false });
-  const meta = await img.metadata();
-  const p = img.resize({ width: opts.w, height: opts.h, fit: 'inside', withoutEnlargement: true });
-  await p.webp({ quality: opts.q ?? 80, effort: 5 }).toFile(dst);
+  if (upToDate(dst, stamp(fs.readFileSync(src), JSON.stringify(opts)))) kept++;
+  else {
+    const img = sharp(src, { limitInputPixels: false });
+    const meta = await img.metadata();
+    await img.resize({ width: opts.w, height: opts.h, fit: 'inside', withoutEnlargement: true }).webp({ quality: opts.q ?? 80, effort: 5 }).toFile(dst);
+    const o = await sharp(dst).metadata();
+    done.push(`${path.basename(dst)}  ${meta.width}×${meta.height} → ${o.width}×${o.height}  ${(fs.statSync(dst).size / 1024).toFixed(0)} KB`);
+  }
   const out = await sharp(dst).metadata();
-  done.push(`${path.basename(dst)}  ${meta.width}×${meta.height} → ${out.width}×${out.height}  ${(fs.statSync(dst).size / 1024).toFixed(0)} KB`);
   return { width: out.width, height: out.height, color: await accent(dst) };
 }
+
+/* os projetos (para as prévias e para saber quais imagens são cartões) */
+const files = {};
+for (const f of fs.readdirSync('content/projects')) if (f.endsWith('.md')) files[f] = fs.readFileSync(path.join('content/projects', f), 'utf8');
+const projects = parseAll(files);
+/* só os cartões vão para a placa de vídeo: só eles ganham a versão de 800 px */
+const CARDS = new Set(projects.map((p) => p.card).filter(Boolean));
 
 const sizes = {};
 for (const f of fs.readdirSync('media/sites').sort()) {
@@ -64,13 +108,17 @@ for (const f of fs.readdirSync('media/sites').sort()) {
   const id = f.replace(/\.(jpe?g|png)$/i, '');
   const src = path.join('media/sites', f);
   if (id.endsWith('-full')) sizes[id] = await save(src, path.join(OUT, `${id}.webp`), { w: 1200, h: 16000, q: 74 });
-  else sizes[id] = await save(src, path.join(OUT, `${id}.webp`), { w: 1280, h: 1280, q: 80 });
+  else {
+    sizes[id] = await save(src, path.join(OUT, `${id}.webp`), { w: 1280, h: 1280, q: 80 });
+    if (CARDS.has(id)) sizes[`${id}-m`] = await save(src, path.join(OUT, `${id}-m.webp`), { w: 800, h: 800, q: 80 });
+  }
 }
 for (const f of fs.readdirSync('media/design').sort()) {
   if (!/\.(jpe?g|png)$/i.test(f)) continue;
   const id = f.replace(/\.(jpe?g|png)$/i, '');
   const src = path.join('media/design', f);
   sizes[id] = await save(src, path.join(OUT, `${id}.webp`), { w: 1280, h: 1280, q: 84 });
+  if (CARDS.has(id)) sizes[`${id}-m`] = await save(src, path.join(OUT, `${id}-m.webp`), { w: 800, h: 800, q: 84 });
   sizes[`${id}-full`] = await save(src, path.join(OUT, `${id}-full.webp`), { w: 2000, h: 2000, q: 84 });
 }
 /* VP-02: o retrato do Perfil (media/perfil/retrato.jpg ou .png), quando houver: vai ao meio da composição */
@@ -96,11 +144,10 @@ const glow = (w, h) => `<defs><radialGradient id="g" cx="50%" cy="50%" r="50%" g
   <rect width="${w}" height="${h}" fill="#000"/><rect width="${w}" height="${h}" fill="url(#g)"/>`;
 
 /* ── as prévias de compartilhamento (VP-60) ── */
-const files = {};
-for (const f of fs.readdirSync('content/projects')) if (f.endsWith('.md')) files[f] = fs.readFileSync(path.join('content/projects', f), 'utf8');
-const projects = parseAll(files);
 const W = 1200, H = 630;
 async function og(out, cardFile) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${glow(W, H)}${wordmark(44, 40, cardFile ? 70 : 120)}</svg>`;
+  if (upToDate(out, stamp(svg, cardFile ? fs.readFileSync(cardFile) : 'sem cartão'))) { kept++; return; }
   const layers = [];
   if (cardFile) {
     const m = await sharp(cardFile).metadata();
@@ -112,7 +159,6 @@ async function og(out, cardFile) {
     const left = Math.round((W - w) / 2), top = Math.round(150 + (420 - h) / 2);
     layers.push({ input: shadow, left: left - 60, top: top - 60 }, { input: card, left, top });
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${glow(W, H)}${wordmark(44, 40, cardFile ? 70 : 120)}</svg>`;
   await sharp(Buffer.from(svg)).composite(layers).jpeg({ quality: 86, mozjpeg: true }).toFile(out);
   done.push(`${out}  ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);
 }
@@ -126,8 +172,11 @@ for (const p of projects) {
 {
   const h = 150, w = (WM.width / 1014) * h;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${glow(W, H)}${wordmark((W - w) / 2, (H - h) / 2, h)}</svg>`;
-  await sharp(Buffer.from(svg)).jpeg({ quality: 88, mozjpeg: true }).toFile('public/og/site.jpg');
-  done.push(`public/og/site.jpg  ${(fs.statSync('public/og/site.jpg').size / 1024).toFixed(0)} KB`);
+  if (upToDate('public/og/site.jpg', stamp(svg))) kept++;
+  else {
+    await sharp(Buffer.from(svg)).jpeg({ quality: 88, mozjpeg: true }).toFile('public/og/site.jpg');
+    done.push(`public/og/site.jpg  ${(fs.statSync('public/og/site.jpg').size / 1024).toFixed(0)} KB`);
+  }
 }
 for (const f of fs.readdirSync('public/og')) if (!ogUsed.has(f)) fs.unlinkSync(path.join('public/og', f));
 
@@ -146,10 +195,19 @@ for (const f of fs.readdirSync('public/og')) if (!ogUsed.has(f)) fs.unlinkSync(p
 <rect width="${size}" height="${size}" rx="${round ? size * 0.22 : 0}" fill="#000"/><rect width="${size}" height="${size}" rx="${round ? size * 0.22 : 0}" fill="url(#g)"/>
 <g transform="translate(${(size - w) / 2} ${pad + OV * s}) scale(${s})" fill="#fff" fill-rule="evenodd">${v}${pPath}</g></svg>`;
   };
-  fs.writeFileSync('public/favicon.svg', icon(64, true));
-  await sharp(Buffer.from(icon(180, false))).png().toFile('public/apple-touch-icon.png');
-  await sharp(Buffer.from(icon(512, false))).png().toFile('public/icon-512.png');
-  done.push('public/favicon.svg, apple-touch-icon.png, icon-512.png');
+  const fav = icon(64, true);
+  if (upToDate('public/favicon.svg', stamp(fav))) kept++;
+  else { fs.writeFileSync('public/favicon.svg', fav); done.push('public/favicon.svg'); }
+  for (const [file, size] of [['public/apple-touch-icon.png', 180], ['public/icon-512.png', 512]]) {
+    const svg = icon(size, false);
+    if (upToDate(file, stamp(svg))) { kept++; continue; }
+    await sharp(Buffer.from(svg)).png().toFile(file);
+    done.push(file);
+  }
 }
 
-console.log(done.join('\n'));
+/* as impressões das saídas que existem, em ordem (o arquivo muda pouco no git) */
+const keep = Object.fromEntries(Object.keys(after).sort().filter((k) => fs.existsSync(k)).map((k) => [k, after[k]]));
+fs.writeFileSync(CACHE, JSON.stringify(keep, null, 2) + '\n');
+
+console.log([...done, `${kept} já em dia${SEMENTE ? ' (impressões anotadas, nada recodificado)' : ''}.`].join('\n'));

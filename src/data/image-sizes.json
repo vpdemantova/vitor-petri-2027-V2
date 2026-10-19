@@ -1,4 +1,29 @@
 {
+  "drift-2": {
+    "width": 1280,
+    "height": 800,
+    "color": "#51b4dd"
+  },
+  "drift-3": {
+    "width": 1280,
+    "height": 800,
+    "color": "#6993c2"
+  },
+  "drift-4": {
+    "width": 1280,
+    "height": 800,
+    "color": "#5a4630"
+  },
+  "drift": {
+    "width": 1280,
+    "height": 800,
+    "color": "#d79a65"
+  },
+  "drift-m": {
+    "width": 800,
+    "height": 500,
+    "color": "#d79a65"
+  },
   "editorial-2": {
     "width": 1280,
     "height": 800,
@@ -9,9 +34,19 @@
     "height": 800,
     "color": "#c8c5c0"
   },
+  "editorial-m": {
+    "width": 800,
+    "height": 500,
+    "color": "#c8c5c0"
+  },
   "jardim": {
     "width": 1280,
     "height": 800,
+    "color": "#547865"
+  },
+  "jardim-m": {
+    "width": 800,
+    "height": 500,
     "color": "#547865"
   },
   "laboratorio-passaro": {
@@ -24,9 +59,19 @@
     "height": 800,
     "color": "#64472b"
   },
+  "laboratorio-m": {
+    "width": 800,
+    "height": 500,
+    "color": "#64472b"
+  },
   "malha": {
     "width": 1280,
     "height": 800,
+    "color": "#18130f"
+  },
+  "malha-m": {
+    "width": 800,
+    "height": 500,
     "color": "#18130f"
   },
   "materia-do-mundo": {
@@ -34,9 +79,19 @@
     "height": 800,
     "color": "#eae7df"
   },
+  "materia-do-mundo-m": {
+    "width": 800,
+    "height": 500,
+    "color": "#eae7df"
+  },
   "notion": {
     "width": 1280,
     "height": 800,
+    "color": "#463830"
+  },
+  "notion-m": {
+    "width": 800,
+    "height": 500,
     "color": "#463830"
   },
   "portal-solar-full": {
@@ -49,9 +104,19 @@
     "height": 800,
     "color": "#18262a"
   },
+  "portal-solar-m": {
+    "width": 800,
+    "height": 500,
+    "color": "#18262a"
+  },
   "primeiro-site": {
     "width": 1280,
     "height": 800,
+    "color": "#011916"
+  },
+  "primeiro-site-m": {
+    "width": 800,
+    "height": 500,
     "color": "#011916"
   },
   "vitordemantova-2": {
@@ -74,9 +139,19 @@
     "height": 800,
     "color": "#2a2b29"
   },
+  "vitordemantova-m": {
+    "width": 800,
+    "height": 500,
+    "color": "#2a2b29"
+  },
   "cepil-logo": {
     "width": 1280,
     "height": 647,
+    "color": "#f4f3f3"
+  },
+  "cepil-logo-m": {
+    "width": 800,
+    "height": 405,
     "color": "#f4f3f3"
   },
   "cepil-logo-full": {
@@ -89,6 +164,11 @@
     "height": 1127,
     "color": "#7f7186"
   },
+  "dimensional-heritage-m": {
+    "width": 800,
+    "height": 799,
+    "color": "#7f7186"
+  },
   "dimensional-heritage-full": {
     "width": 1128,
     "height": 1127,
@@ -98,6 +178,11 @@
     "width": 595,
     "height": 842,
     "color": "#eeebeb"
+  },
+  "lenin-leonidov-m": {
+    "width": 565,
+    "height": 800,
+    "color": "#edebeb"
   },
   "lenin-leonidov-full": {
     "width": 595,
@@ -109,6 +194,11 @@
     "height": 1280,
     "color": "#645c3d"
   },
+  "poster-ccg-m": {
+    "width": 566,
+    "height": 800,
+    "color": "#645b3d"
+  },
   "poster-ccg-full": {
     "width": 1414,
     "height": 2000,
@@ -119,6 +209,11 @@
     "height": 1280,
     "color": "#c8b074"
   },
+  "schoenberg-zine-m": {
+    "width": 780,
+    "height": 800,
+    "color": "#c7b074"
+  },
   "schoenberg-zine-full": {
     "width": 1298,
     "height": 1332,
@@ -128,6 +223,11 @@
     "width": 909,
     "height": 1280,
     "color": "#978525"
+  },
+  "sun-lettering-m": {
+    "width": 568,
+    "height": 800,
+    "color": "#978626"
   },
   "sun-lettering-full": {
     "width": 1421,

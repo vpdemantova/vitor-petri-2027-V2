@@ -11,7 +11,8 @@ year: 2026
 url: https://www.vitordemantova.com/#laboratorio
 card: laboratorio
 shots: laboratorio, laboratorio-passaro
-source: vitordemantova/data/guia.ts (o Guia descreve o que o Laboratório faz de verdade)
+video: laboratorio
+source: vitordemantova/data/guia.ts (o Guia descreve o que o Laboratório faz de verdade); o vídeo do cartão, gravado do site no ar em 19/out/2026 (VP-95)
 ---
 A walkable world inside my site: a walled hall with the design and photography wings, a music workshop, a library, a minerals cabinet, a chemistry lab and a woodshop, under the real sky of Campinas, with a wishing fountain on the grass in front of the gate.
 

@@ -10,7 +10,8 @@ year: 2026
 url: https://www.vitordemantova.com/#malha
 card: malha
 shots: malha
-source: a primeira versão deste site (11/out/2026)
+video: malha
+source: a primeira versão deste site (11/out/2026); o vídeo do cartão, gravado do site no ar em 19/out/2026 (VP-95)
 ---
 The 3D logo up close: turn it from every angle, see its faces, its wireframe of forty thousand triangles and its textures, with the logo explained.
 

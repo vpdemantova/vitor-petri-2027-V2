@@ -32,6 +32,16 @@
    · para a ficha que nasce do cartão (VP-22): o retângulo do cartão na
      tela (screenRect) e o cartão que some enquanto a ficha está aberta.
 
+   O QUE VEIO DEPOIS (19/out/2026):
+   · OS VÍDEOS (VP-95): os sites com um laço gravado (a linha video: do
+     arquivo do projeto, public/video/<id>.mp4) tocam no cartão da vez,
+     mudos e em laço, quando a fila para nele; os outros ficam na foto. O
+     vídeo só baixa quando o cartão vira a vez, entra num fade sobre a foto
+     e pausa ao sair. Sem vídeo com "reduzir movimento", com a economia de
+     dados ligada ou com ?semvideo no endereço;
+   · a sala em pé (VP-96): o cartão da vez sai da parede para o meio do
+     corredor, senão ficava cortado na borda da tela.
+
    Os materiais são escritos em TSL (three/tsl) e rodam em WebGPU ou WebGL2.
 ════════════════════════════════════════════════════════════════════ */
 import * as THREE from "three/webgpu";
@@ -39,7 +49,7 @@ import {
   Fn, uniform, texture, uv, vec2, vec3, vec4, float, sin, positionLocal, positionWorld, clamp, mix, abs, length, max, min,
   smoothstep, fwidth, exp, normalize, fract, cameraPosition,
 } from "three/tsl";
-import { PROJECTS, aspectOf, colorOf, imageUrl, type Category, type Project } from "../content/projects";
+import { PROJECTS, aspectOf, colorOf, hasImage, imageUrl, videoUrl, type Category, type Project } from "../content/projects";
 import { drawCover, loadCoverFonts } from "../ui/musiccard";
 import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility } from "./math";
 
@@ -62,6 +72,8 @@ const SPREAD: [number, number][] = [
 const makeUniforms = () => ({
   vel: uniform(0), hover: uniform(0), alpha: uniform(0), dim: uniform(0), reveal: uniform(0),
   wave: uniform(1), blur: uniform(0), size: uniform(new THREE.Vector2(2, 1.25)), radius: uniform(0),
+  /** VP-95: 0 = a foto, 1 = o vídeo */
+  video: uniform(0),
 });
 type Uniforms = ReturnType<typeof makeUniforms>;
 
@@ -81,6 +93,10 @@ interface Card {
   hide: number;
   waveT: number;
   cover?: { canvas: HTMLCanvasElement; tex: THREE.CanvasTexture };
+  /** VP-95: a textura do vídeo (só nos cartões com laço), o elemento e o quanto ele já entrou (0…1) */
+  vmap: ReturnType<typeof texture> | null;
+  vid?: { el: HTMLVideoElement; ready: boolean };
+  vmix: number;
 }
 
 export type Filter = Category | "all";
@@ -120,6 +136,8 @@ export interface Gallery {
   refreshCovers: () => void;
   /** quando a rolagem assenta num cartão novo */
   onSettle: (fn: (index: number) => void) => void;
+  /** VP-99: compila os materiais de todos os cartões (e da sala) antes do primeiro quadro, sem travar a página */
+  warm: () => Promise<void>;
 }
 
 export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGPURenderer, reduced: boolean): Gallery {
@@ -140,6 +158,8 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     u.radius.value = upright ? 0 : 0.022;
     const mat = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide });
     const map = texture(placeholder);
+    /* VP-95: a segunda textura só existe nos cartões com vídeo (os outros não pagam a leitura a mais) */
+    const vmap = project.video ? texture(placeholder) : null;
     /* a dobra: a curva no meio da largura, pela velocidade; e, na
        abertura, o cartão chega levemente curvado */
     mat.positionNode = Fn(() => {
@@ -168,6 +188,8 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       const b = map.sample(q.sub(shift)).bias(u.blur).b;
       /* o anel acende de leve a imagem por onde passa */
       const col = vec3(r, g, b).mul(float(1).add(ring.mul(0.07))).toVar();
+      /* VP-95: o vídeo entra por cima da foto (só toca parado, então sem a separação das cores) */
+      if (vmap) col.assign(mix(col, vmap.sample(q).rgb, u.video));
       /* longe, mais escuro (como os cartões de trás nas telas) */
       return vec4(mix(col, vec3(0.02, 0.02, 0.05), u.dim), 1);
     })();
@@ -183,7 +205,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     mesh.scale.set(w, h, 1);
     mesh.userData.index = index;
     group.add(mesh);
-    const card: Card = { project, index, mesh, w, h, u, map, hover: 0, rel: 0, slot: index, hide: 0, waveT: 1 };
+    const card: Card = { project, index, mesh, w, h, u, map, hover: 0, rel: 0, slot: index, hide: 0, waveT: 1, vmap, vmix: 0 };
     if (project.category === "music" && !project.card) {
       const canvas = document.createElement("canvas");
       const tex = new THREE.CanvasTexture(canvas);
@@ -259,6 +281,37 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     target = pos = s; vel = 0; settled = -1;
   };
 
+  /* VP-95: o vídeo do cartão, criado na primeira vez que ele é a vez */
+  const nav = navigator as Navigator & { connection?: { saveData?: boolean } };
+  const videoOK = !reduced && !nav.connection?.saveData && !new URLSearchParams(location.search).has("semvideo");
+  const startVideo = (card: Card) => {
+    const el = document.createElement("video");
+    el.muted = true; el.loop = true; el.playsInline = true; el.preload = "auto";
+    el.setAttribute("muted", ""); el.setAttribute("playsinline", "");
+    el.src = videoUrl(card.project.video!);
+    const vid = { el, ready: false };
+    el.addEventListener("playing", () => { vid.ready = true; }, { once: true });
+    el.addEventListener("error", () => { vid.ready = false; });
+    const tex = new THREE.VideoTexture(el);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    card.vmap!.value = tex;
+    card.vid = vid;
+  };
+  /* com a aba escondida o laço de quadros para; os vídeos também (nada toca escondido) */
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) for (const c of cards) if (c.vid && !c.vid.el.paused) c.vid.el.pause();
+  });
+  const videoFrame = (card: Card, want: boolean, dt: number) => {
+    if (!card.vmap || !videoOK) return;
+    if (want && !card.vid) startVideo(card);
+    const v = card.vid;
+    if (!v) return;
+    if (want && v.el.paused) v.el.play().catch(() => { /* o navegador recusou: fica a foto */ });
+    card.vmix = damp(card.vmix, want && v.ready ? 1 : 0, 5, dt);
+    card.u.video.value = card.vmix;
+    if (!want && card.vmix < 0.01 && !v.el.paused) v.el.pause();
+  };
+
   const update = (dt: number) => {
     const fit = fitScale(camera.aspect || 1.6, camera.fov, SITE_W, FOCUS);
     k = fit.k; portrait = fit.portrait;
@@ -331,7 +384,9 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
         const relR = wrap(s * DR - pos * DR, LR, DR, N);
         const side = s % 2 === 0 ? -1 : 1;
         const fR = 1 - ss(0.15, 0.7, Math.abs(relR) / DR);
-        const wr = WR * (portrait ? 0.62 : 1);
+        /* VP-96 (19/out/2026): em pé, o corredor é estreito e o da vez ficava cortado na parede;
+           ele sai da parede para o meio, como um quadro tirado para olhar, e volta ao passar */
+        const wr = WR * (portrait ? 0.62 : 1) * (1 - (portrait ? 0.9 : 0) * fR);
         const zr = (ZR + (portrait ? 2.6 : 0)) + relR;
         const toCam = Math.atan2(wr, zr);
         const yaw = side * -(Math.PI / 2 - 0.5) * (1 - fR) + side * -toCam * fR;
@@ -354,6 +409,8 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       /* a ficha aberta esconde o cartão que virou ficha */
       card.hide = damp(card.hide, hidden === card.index ? 1 : 0, reduced ? 60 : 9, dt);
       card.u.alpha.value = alphaQ * filterFade * (1 - card.hide);
+      /* VP-95: o laço toca no da vez, com a fila parada, depois da abertura e sem a ficha por cima */
+      videoFrame(card, card.index === order[act] && Math.abs(vel) < 0.05 && Math.abs(target - pos) < 0.03 && reveal > 0.99 && card.hide < 0.01 && filterDir === 0, dt);
       card.u.vel.value = speed * (1 - R * 0.7);
       card.u.reveal.value = rv;
       card.hover = damp(card.hover, hovered === card.index ? 1 : 0, 8, dt);
@@ -400,6 +457,10 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
   const loader = new THREE.ImageBitmapLoader();
   loader.setOptions({ imageOrientation: "flipY", premultiplyAlpha: "none" });
   const maxAniso = renderer.getMaxAnisotropy?.() ?? 8;
+  /* VP-99: no celular (abaixo de 760 px, o mesmo corte do CSS) o cartão da vez tem uns 350 px de CSS;
+     a textura de 800 px basta e chega antes (a de 1280 fica para o computador) */
+  const small = innerWidth < 760;
+  const cardImage = (name: string) => (small && hasImage(`${name}-m`) ? `${name}-m` : name);
   const loadCard = async (card: Card) => {
     if (card.cover) {
       await loadCoverFonts();
@@ -410,7 +471,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     }
     if (!card.project.card) return;
     try {
-      const bmp = await loader.loadAsync(imageUrl(card.project.card));
+      const bmp = await loader.loadAsync(imageUrl(cardImage(card.project.card)));
       const tex = new THREE.Texture(bmp as unknown as HTMLImageElement);
       tex.flipY = false;
       tex.colorSpace = THREE.SRGBColorSpace;
@@ -488,6 +549,17 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       for (const c of cards) if (c.cover && c.map.value === c.cover.tex) { drawCover(c.cover.canvas, c.project); c.cover.tex.needsUpdate = true; }
     },
     onSettle: (fn) => { settleSubs.push(fn); },
+    warm: async () => {
+      /* todos à vista por um instante (só para a compilação; nada é desenhado) */
+      const before = cards.map((c) => [c.mesh.visible, c.mesh.frustumCulled] as const);
+      const room0 = roomGroup.visible;
+      for (const c of cards) { c.mesh.visible = true; c.mesh.frustumCulled = false; }
+      roomGroup.visible = true;
+      try { await renderer.compileAsync(scene, camera); } finally {
+        cards.forEach((c, i) => { c.mesh.visible = before[i][0]; c.mesh.frustumCulled = before[i][1]; });
+        roomGroup.visible = room0;
+      }
+    },
   };
 }
 

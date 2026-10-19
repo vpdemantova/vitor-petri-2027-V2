@@ -14,7 +14,8 @@
     "check": "tsc --noEmit && eslint . && vitest run",
     "format": "prettier --write \"src/**/*.{ts,css}\"",
     "images": "node scripts/prepare-images.mjs",
-    "analise": "ANALISE=1 vite build"
+    "analise": "vite build --mode analise",
+    "videos": "node scripts/gravar-videos.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

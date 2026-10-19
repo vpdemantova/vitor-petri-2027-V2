@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!assets/|img/|og/|audio/|ref/).*)",
+      "source": "/((?!assets/|img/|og/|audio/|video/|ref/).*)",
       "destination": "/index.html"
     }
   ],
@@ -39,6 +39,15 @@
     },
     {
       "source": "/audio/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000"
+        }
+      ]
+    },
+    {
+      "source": "/video/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

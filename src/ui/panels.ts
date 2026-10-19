@@ -21,7 +21,7 @@ import gsap from "gsap";
 import { PROJECTS, CATEGORIES, hasImage, imageUrl, sizeOf, type Category, type Project } from "../content/projects";
 import { PROFILE, PROFILE_ART } from "../data/site";
 import { t, tx, tp, onLang } from "../core/i18n";
-import type { PanelKind } from "../core/router";
+import { localize, type PanelKind } from "../core/router";
 import { player } from "../core/sound";
 import { drawCover, loadCoverFonts } from "./musiccard";
 import { h, ARROW, CROSS, PLAY, PAUSE, trapFocus, prefersReducedMotion } from "./dom";
@@ -228,7 +228,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     }
     const { prev, next } = neighbors(p);
     /* o nome falado é o que se lê ("Anterior Laboratório"): as setas ficam escondidas do leitor */
-    const navLink = (q: Project, dir: "prev" | "next") => h("a", { class: `project-step is-${dir}`, href: `/project/${q.id}`, "data-link": "" },
+    const navLink = (q: Project, dir: "prev" | "next") => h("a", { class: `project-step is-${dir}`, href: localize(`/project/${q.id}`), "data-link": "" },
       h("span", { class: "project-step-k", html: dir === "prev" ? `<span aria-hidden="true">←</span> ${t("previous")}` : `${t("next")} <span aria-hidden="true">→</span>` }),
       h("span", { class: "project-step-name" }, tx(q.name)));
     const desc = tp(p.description);

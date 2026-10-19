@@ -10,7 +10,8 @@ year: 2026
 url: https://montagnedejade.org
 card: portal-solar
 shots: portal-solar-full
-source: o próprio site (montagnedejade.org, lido em 16/out/2026); o ano, do histórico do git (interface, desde jul/2026)
+video: portal-solar
+source: o próprio site (montagnedejade.org, lido em 16/out/2026); o ano, do histórico do git (interface, desde jul/2026); o vídeo do cartão, gravado do site no ar em 19/out/2026 (VP-95)
 ---
 An open atlas of knowledge: subjects, elements, crafts, objects, languages, mythology, people and timelines, with images and credits. Each entry leads to the ones linked to it, each event to its time, each choice to whoever signed it.
 

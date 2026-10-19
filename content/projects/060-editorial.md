@@ -11,7 +11,8 @@ year: 2026
 url: https://www.vitordemantova.com/?modo=editorial
 card: editorial
 shots: editorial, editorial-2
-source: o próprio site (16/out/2026: só a capa e o bilhete "The rest of the issue is being written"); vitordemantova/CLAUDE.md
+video: editorial
+source: o próprio site (16/out/2026: só a capa e o bilhete "The rest of the issue is being written"); vitordemantova/CLAUDE.md; o vídeo do cartão, gravado do site no ar em 19/out/2026 (VP-95)
 ---
 The other face of the same site, as a magazine: the cover of issue 23 on a houndstooth table, in the type of a European magazine. Clicking the black lacquered 3D logo changes its shape: its three parts move, turn and scale, whole.
 

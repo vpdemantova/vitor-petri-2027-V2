@@ -37,7 +37,7 @@ describe("o leitor", () => {
 });
 
 describe("os projetos de verdade", () => {
-  it("são 21, com ids únicos, na ordem dos números", () => {
+  it("têm ids únicos, na ordem dos números", () => {
     expect(projects.length).toBe(Object.keys(files).length);
     expect(new Set(projects.map((p) => p.id)).size).toBe(projects.length);
     expect(projects[0].id).toBe("vitordemantova");
@@ -59,5 +59,11 @@ describe("os projetos de verdade", () => {
       expect(p.description.pt.length).toBeGreaterThan(0);
     }
     if (p.url) expect(p.url).toMatch(/^https:\/\//);
+    /* VP-95: o vídeo do cartão existe e é leve (um laço de 8 s, até ~1,2 MB) */
+    if (p.video) {
+      const f = path.resolve(__dirname, `../../public/video/${p.video}.mp4`);
+      expect(fs.existsSync(f), `falta public/video/${p.video}.mp4`).toBe(true);
+      expect(fs.statSync(f).size).toBeLessThan(1.25 * 1024 * 1024);
+    }
   });
 });

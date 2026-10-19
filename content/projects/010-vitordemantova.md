@@ -10,7 +10,8 @@ year: 2026
 url: https://www.vitordemantova.com
 card: vitordemantova
 shots: vitordemantova, vitordemantova-2, vitordemantova-3, vitordemantova-4
-source: o próprio site (vitordemantova/CLAUDE.md e ESTADO-DO-SITE.md)
+video: vitordemantova
+source: o próprio site (vitordemantova/CLAUDE.md e ESTADO-DO-SITE.md); o vídeo do cartão, gravado do site no ar em 19/out/2026 (VP-95)
 ---
 My personal site, in two modes. The Studio: a 3D logo that breaks apart and rebuilds itself, a generative mosaic shader behind everything, menus drawn in particles and a walkable 3D Laboratory.
 

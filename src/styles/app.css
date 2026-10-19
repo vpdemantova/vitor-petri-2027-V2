@@ -292,6 +292,7 @@ html.has-panel .foot { opacity: 0 !important; pointer-events: none; }
 .foot-btn:hover { background: rgba(196, 194, 255, 0.12); }
 .foot-btn[aria-pressed="true"] { background: var(--lavender); color: var(--ink); }
 /* as três barrinhas do som: paradas desligado, dançando ligado */
+.foot-room-i { display: none; }
 .foot-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 0.72em; }
 .foot-bars i { width: 2px; height: 30%; background: currentColor; border-radius: 1px; }
 .foot.is-sound .foot-bars i { animation: foot-bar 0.9s ease-in-out infinite alternate; }
@@ -479,7 +480,9 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
   .foot-cat { display: none; }
   .foot-ctl { gap: 2px; }
   .foot-btn { min-height: 44px; min-width: 44px; justify-content: center; padding: 0 9px; font-size: 14px; }
-  .foot-btn:not(.foot-lang):not(.foot-sound) { display: none; }
+  /* VP-96: a sala também no celular, só com o desenho */
+  .foot-room-t { display: none; }
+  .foot-room-i { display: inline-flex; }
   .foot-sound-t { display: none; }
   .foot-bars { height: 14px; gap: 3px; }
   .hint { bottom: 76px; font-size: 11px; gap: 10px; }

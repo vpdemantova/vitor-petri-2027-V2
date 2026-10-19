@@ -17,7 +17,7 @@ import gsap from "gsap";
 import "./styles/app.css";
 import { PROJECTS } from "./content/projects";
 import { t, tx, getLang, onLang } from "./core/i18n";
-import { startRouter, onRoute, go, current as currentRoute, type Route } from "./core/router";
+import { startRouter, onRoute, go, localize, current as currentRoute, type Route } from "./core/router";
 import { bindInput } from "./core/input";
 import { soundOn, setSound, onSound, chime, preview } from "./core/sound";
 import { wordmarkSVG } from "./ui/wordmark";
@@ -67,11 +67,20 @@ onSound((v) => foot.setSound(v));
 if (skip) top.prepend(skip);
 const stageUi = h("main", { class: "stage-ui" }, label.el, contact.pill, contact.card, foot.el, hint.el, live);
 onLang(() => stageUi.setAttribute("aria-label", t("galleryLabel")));
-app.append(top, stageUi, intro.el, shortcuts.el, cursor.el);
+/* VP-99 (19/out/2026): a abertura que veio pronta no HTML fica onde está e as outras peças entram em volta
+   dela. Mover a abertura (um append dela) a fazia pintar de novo depois do JavaScript, e o navegador contava
+   essa pintura como a maior da página: no celular simulado, de 1,7 s para 4,1 s. */
+if (intro.el.parentNode === app) { intro.el.before(top, stageUi); intro.el.after(shortcuts.el, cursor.el); }
+else app.append(top, stageUi, intro.el, shortcuts.el, cursor.el);
 
 onLang(() => {
   navIndex.textContent = t("index");
   navProfile.textContent = t("profile");
+  /* VP-101: os links levam à página na língua de agora (/pt/…) */
+  brand.href = localize("/");
+  navIndex.href = localize("/index");
+  navProfile.href = localize("/profile");
+  if (skip) skip.href = localize("/index");
   brand.setAttribute("aria-label", t("backToGallery"));
   if (skip) skip.textContent = t("skipToIndex");
   document.title = titleFor(currentRoute());
@@ -262,6 +271,9 @@ async function boot() {
     const p = PROJECTS[hoverHit ?? index];
     preview(introDone && !panel && p.audio && (hoverHit !== null || focus > 0.9) ? p.audio : null);
   });
+  /* VP-99: os materiais compilam antes do primeiro quadro (no WebGPU, em paralelo, fora do fio principal);
+     se falhar, compilam no primeiro quadro, como antes */
+  await g.warm().catch((e) => console.warn("Sem pré-compilação:", e));
   stage.start();
 
   /* ── a abertura: as imagens chegam, a palavra se enche ── */

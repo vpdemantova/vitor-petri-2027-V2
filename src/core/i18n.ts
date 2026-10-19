@@ -1,6 +1,7 @@
 /* ════════════════════════════════════════════════════════════════════
    OS DOIS IDIOMAS (VP-01, 16/out/2026): inglês, como as telas, e
-   português. A escolha vem do endereço (?lang=pt), depois do que a pessoa
+   português. A escolha vem do endereço (?lang=pt, ou o /pt da frente: VP-101),
+   depois do que a pessoa
    escolheu antes (guardado neste navegador) e, na primeira visita, da
    língua do navegador.
 
@@ -76,6 +77,8 @@ const KEY = "vp-lang";
 function initial(): Lang {
   const q = new URLSearchParams(location.search).get("lang");
   if (q === "pt" || q === "en") return q;
+  /* VP-101: as páginas em português moram em /pt */
+  if (/^\/pt(\/|$)/.test(location.pathname)) return "pt";
   try {
     const s = localStorage.getItem(KEY);
     if (s === "pt" || s === "en") return s;

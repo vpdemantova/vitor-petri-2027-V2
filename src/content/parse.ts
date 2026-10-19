@@ -15,6 +15,7 @@
      url: https://…              (sem endereço, "não publicado")
      card: dimensional-heritage  (a imagem do cartão, em public/img/, sem o .webp)
      shots: a-full, b-full       (as imagens da ficha, separadas por vírgula)
+     video: malha                (opcional, VP-95: public/video/malha.mp4, o laço do cartão da vez)
      ---
      O texto em inglês (parágrafos separados por uma linha em branco).
 
@@ -47,6 +48,8 @@ export interface Project {
   /** a textura do cartão (public/img/<card>.webp); vazio nos de música (o cartão é desenhado) */
   card: string;
   shots: string[];
+  /** VP-95: o laço de vídeo do cartão (public/video/<video>.mp4), quando houver */
+  video?: string;
   description: { en: string[]; pt: string[] };
   /** o estudo de caso (VP-92): só quando ele escrever */
   process?: { en: string[]; pt: string[] };
@@ -124,6 +127,7 @@ export function parseProject(file: string, src: string): Project {
     url: d.url || undefined,
     card: d.card ?? "",
     shots: list(d.shots),
+    video: d.video || undefined,
     description: desc,
     process: s.process ? { en: s.process, pt: s["process.pt"] ?? s.process } : undefined,
     audio: d.audio || undefined,

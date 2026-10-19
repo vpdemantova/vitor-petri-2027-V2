@@ -1,6 +1,6 @@
 # Vitor Petri · V2
 
-O portfólio **Vitor Petri**, construído a partir das sete telas de referência do design "Whizbigg" (logotipo, Preloader, Home / Gallery, Project, Index e Profile), com o nome trocado e os projetos de verdade dele. A V1 é de 11/out/2026 e continua em `~/www/vitor-petri-2027`. Esta V2, de 16/out/2026, é a cópia dela, com o histórico, que passou por todas as tarefas do `TAREFAS.md`.
+O portfólio **Vitor Petri**, construído a partir das sete telas de referência do design "Whizbigg" (logotipo, Preloader, Home / Gallery, Project, Index e Profile), com o nome trocado e os projetos de verdade dele. A V1 é de 11/out/2026 e continua em `~/www/vitor-petri-2027`. Esta V2, de 16/out/2026, é a cópia dela, com o histórico, que passou por todas as tarefas do `TAREFAS.md`. Em 19/out/2026 a V2 ganhou, já no Windows (`D:\www\vitor-petri-2027-V2`), a segunda rodada: as páginas em português (`/pt`), os vídeos nos cartões dos sites, o DRIFT, a sala no celular, a abertura mais rápida no celular e o GitHub Actions.
 
 - **No ar:** https://vitor-petri-2027-v2.vercel.app (um push na `main` publica; antes, a Vercel confere os tipos, o lint e os testes).
 - **Código:** https://github.com/vpdemantova/vitor-petri-2027-V2
@@ -13,11 +13,12 @@ O portfólio **Vitor Petri**, construído a partir das sete telas de referência
 ```
 npm install
 npm run dev        # http://localhost:5190
-npm run check      # tipos, lint e os 42 testes (o mesmo que a Vercel roda)
+npm run check      # tipos, lint e os testes (o mesmo que a Vercel e o GitHub rodam)
 npm run build      # gera dist/, com uma página por projeto, o sitemap e o robots
 npm run preview    # serve o dist/ em http://localhost:5191
-npm run images     # refaz public/img, public/og e os ícones a partir de media/
+npm run images     # refaz public/img, public/og e os ícones a partir de media/ (só o que mudou; -- --tudo refaz tudo)
 npm run analise    # o mapa do pacote em dist/stats.html
+npm run videos     # regrava os laços dos cartões (public/video), dos sites no ar; ver o cabeçalho de scripts/gravar-videos.mjs
 ```
 
 No fim do endereço:
@@ -27,7 +28,8 @@ No fim do endereço:
 - `?semefeitos`, sem o pós-processamento;
 - `?hora=18`, que finge a hora de Campinas;
 - `?arrasto=1.3`, o arrasto mais sensível;
-- `?ref=3`, o modo comparação.
+- `?ref=3`, o modo comparação (as telas ficam em `ref/`, fora do git: ver a VP-94);
+- `?semvideo`, só as fotos nos cartões.
 
 ## O que tem
 
@@ -35,7 +37,7 @@ No fim do endereço:
 |---|---|
 | Logotipo | `VITOR PETRI` desenhado letra por letra no estilo do WHIZBIGG (`src/ui/wordmark.ts`) |
 | Preloader | As coordenadas de Campinas, que "digitam", e o logotipo grande. Ele se forma de partículas enquanto as imagens chegam (sem placa de vídeo, se enche de baixo para cima) e depois voa até o canto. Vem pronto no HTML, para pintar antes do JavaScript |
-| Home / Gallery | Os 21 projetos como cartões em profundidade, no brilho lavanda; a etiqueta "Nome ↗ · VIEW PROJECT" presa ao canto do cartão da vez; o botão "Contact"; no pé, o contador, a Sala, o Som e o idioma |
+| Home / Gallery | Os 22 projetos como cartões em profundidade, no brilho lavanda (nos cinco sites com laço gravado, o cartão da vez vira vídeo quando a fila para); a etiqueta "Nome ↗ · VIEW PROJECT" presa ao canto do cartão da vez; o botão "Contact"; no pé, o contador, a Sala, o Som e o idioma |
 | Project | O vidro claro com nome, ROLE / TYPE / STACK / YEAR, VISIT WEBSITE, a descrição, anterior e próximo, e as imagens rolando. Nasce do retângulo do cartão. Nas obras de música, o tocador e a capa desenhada |
 | Index | O painel branco com os filtros (All, Websites, Design, Experiments, Music), que valem também para a galeria, a busca e a tabela. A linha sob o mouse leva a galeria até aquele projeto |
 | Profile | O texto em serifa à esquerda, a composição com três peças dele (o retrato entra no meio, quando houver) e as duas linhas embaixo à direita |
@@ -50,7 +52,7 @@ Além das telas:
 - os atalhos (?);
 - o modo comparação (`?ref=N`).
 
-Endereços: `/index`, `/profile` e `/project/<id>`. O voltar do navegador funciona, e os links antigos, com `#/`, continuam valendo.
+Endereços: `/index`, `/profile` e `/project/<id>`, e os mesmos em português com `/pt` na frente (`/pt/project/<id>`). Cada um tem a sua página gerada no build, na língua dele, com os links `hreflang` para a outra. Trocar a língua troca o `/pt` do endereço. O voltar do navegador funciona, e os links antigos, com `#/`, continuam valendo.
 
 Teclado e acessibilidade:
 - as setas (ou PageUp e PageDown) passam de projeto, e Enter abre o da vez; na ficha, ← e → passam de ficha;
@@ -103,12 +105,14 @@ Diferenças em relação às telas:
   - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto;
   - **a velocidade:** entra nos shaders. O cartão **dobra** e as cores **se separam** nas bordas; ao assentar, um **anel** sai do centro da imagem;
   - **os filtros:** a fila se refaz só com a categoria;
-  - **a sala:** a mesma fila, nas paredes de um corredor;
+  - **a sala:** a mesma fila, nas paredes de um corredor (no celular, o da vez sai da parede para o meio);
+  - **os vídeos:** nos cartões com laço, uma segunda textura (`VideoTexture`) entra num fade sobre a foto quando a fila para; o vídeo só baixa quando o cartão vira a vez e pausa ao sair;
   - **os cantos:** arredondados pela distância até a borda, no próprio shader.
 - **O fundo** (`src/gl/backdrop.ts`): o brilho medido, com pontilhado contra os degraus de 8 bits. Na abertura, acende do centro para fora; depois, muda de tom com a hora de Campinas (`src/gl/hour.ts`) e puxa de leve para o tom do cartão da vez.
 - **O pós-processamento** (`src/gl/post.ts`): o bloom só com o gesto e um grão de filme fino.
 - **As partículas da abertura** (`src/gl/particles.ts`): um compute shader em TSL (compute de verdade no WebGPU, transform feedback no WebGL2).
-- **Imagens fora da linha principal.** O `ImageBitmapLoader` decodifica com `createImageBitmap`, com mipmaps e filtro anisotrópico. Primeiro vêm os quatro cartões perto da vez; o resto chega depois.
+- **Imagens fora da linha principal.** O `ImageBitmapLoader` decodifica com `createImageBitmap`, com mipmaps e filtro anisotrópico. Primeiro vêm os quatro cartões perto da vez; o resto chega depois. No celular, os cartões vêm em 800 px (`<nome>-m.webp`).
+- **A primeira pintura** (VP-99): a abertura vem pronta no HTML e o JavaScript não a mexe de lugar (mexer a fazia pintar de novo, e a "maior pintura" ia para depois do JavaScript); os materiais compilam antes do primeiro quadro (`compileAsync`).
 - **Resolução adaptativa:** se o quadro passa de 20 ms por um segundo, a densidade de pixels baixa um degrau; com folga, sobe de volta. O laço para quando a aba some.
 - **O 3D em pedaço separado:** a interface aparece na hora, e o three.js (uns 241 KB compactados) chega em seguida.
 - **O som** (`src/core/sound.ts`): Web Audio, sem arquivos, desligado por padrão.
@@ -139,6 +143,7 @@ year: 2026                  (só se for sabido)
 url: https://…              (sem endereço: "não publicado")
 card: meu-projeto           (a imagem do cartão, sem o .webp)
 shots: meu-projeto, meu-projeto-full
+video: meu-projeto          (opcional: public/video/meu-projeto.mp4, um laço de 8 s; ver npm run videos)
 source: de onde saiu cada dado (não aparece no site)
 ---
 O texto em inglês.
@@ -164,9 +169,12 @@ media/              as imagens originais (capturas, peças de design, o retrato)
 public/img/         as imagens do site, em WebP (geradas)
 public/og/          as prévias de compartilhamento (geradas)
 public/audio/       a gravação da Chanson Antique
-scripts/            prepare-images.mjs; github-actions-ci.yml (esperando a VP-98)
+public/video/       os laços dos cartões (gerados por npm run videos)
+scripts/            prepare-images.mjs (as imagens; imagens-feitas.json guarda o que já está em dia), gravar-videos.mjs (os vídeos)
+.github/workflows/  ci.yml: a conferência a cada envio (VP-98)
+ref/                as telas de referência do modo comparação (fora do git e do site: VP-94)
 src/main.ts         liga as peças
-src/core/           router (os endereços), i18n (as línguas), input (roda, dedo, teclado), sound
+src/core/           router (os endereços), paths (o /pt, também usado pelo build), i18n (as línguas), input (roda, dedo, teclado), sound
 src/content/        parse (o leitor do Markdown, também usado pelo build), projects
 src/gl/             stage, backdrop, gallery, post, particles, math, hour
 src/ui/             wordmark, preloader, intro, label, contact, panels, foot, cursor, shortcuts, compare, langswitch, musiccard, dom
