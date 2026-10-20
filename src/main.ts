@@ -226,6 +226,7 @@ async function boot() {
 
   const input = bindInput(canvas, g, {
     blocked: () => !introDone || shortcuts.isOpen() || (!!panels.current() && panels.current() !== "index"),
+    consumes: () => contact.isOpen(),
     onTap: (hit) => { if (hit === g.active().index) openProject(hit, true); else g.goTo(hit); },
     onMove: () => hint.done(),
     onDrag: () => {},

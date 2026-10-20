@@ -102,7 +102,7 @@ Diferenças em relação às telas:
 - **WebGPU, com WebGL2 de reserva.** O `WebGPURenderer` do three.js escolhe o motor. Os materiais são escritos em **TSL** (a linguagem de nós do three), que vira WGSL no WebGPU e GLSL no WebGL2: o mesmo código nos dois.
 - **A galeria** (`src/gl/gallery.ts`; as contas puras em `src/gl/math.ts`, com testes):
   - **a fila:** os cartões ao longo do eixo da câmera, sem fim. O da vez fica no foco; os de trás ficam menores, mais escuros e um pouco desfocados (um mipmap mais alto), espiando pelos cantos;
-  - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto;
+  - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto. A roda e o arrasto decidem (VP-108, `src/core/gesture.ts`): cada gesto anda pelo menos um cartão inteiro na direção dele, e nunca volta sozinho;
   - **a velocidade:** entra nos shaders. O cartão **dobra** e as cores **se separam** nas bordas; ao assentar, um **anel** sai do centro da imagem;
   - **os filtros:** a fila se refaz só com a categoria;
   - **a sala:** a mesma fila, nas paredes de um corredor (no celular, o da vez sai da parede para o meio);
@@ -174,7 +174,7 @@ scripts/            prepare-images.mjs (as imagens; imagens-feitas.json guarda o
 .github/workflows/  ci.yml: a conferência a cada envio (VP-98)
 ref/                as telas de referência do modo comparação (fora do git e do site: VP-94)
 src/main.ts         liga as peças
-src/core/           router (os endereços), paths (o /pt, também usado pelo build), i18n (as línguas), input (roda, dedo, teclado), sound
+src/core/           router (os endereços), paths (o /pt, também usado pelo build), i18n (as línguas), input (roda, dedo, teclado), gesture (as contas da roda e do arrasto), sound
 src/content/        parse (o leitor do Markdown, também usado pelo build), projects
 src/gl/             stage, backdrop, gallery, post, particles, math, hour
 src/ui/             wordmark, preloader, intro, label, contact, panels, foot, cursor, shortcuts, compare, langswitch, musiccard, dom

@@ -105,6 +105,12 @@ export interface Gallery {
   update: (dt: number) => void;
   /** a entrada: soma (em "cartões") ao alvo */
   nudge: (cards: number) => void;
+  /** VP-108: n passos decididos a partir do cartão inteiro mais perto do alvo (a roda): nunca volta sozinho */
+  step: (n: number) => void;
+  /** o alvo de agora, em cartões (o arrasto guarda de onde partiu) */
+  target: () => number;
+  /** VP-108: o alvo vai para um cartão inteiro e fica (o arrasto, ao soltar) */
+  settle: (to: number) => void;
   /** vai até o projeto i (índice de PROJECTS) pelo caminho mais curto */
   goTo: (index: number) => void;
   /** em que projeto o ponteiro está (coordenadas −1…1), ou null */
@@ -488,6 +494,10 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
   return {
     update,
     nudge: (n) => { target += n; idle = 0; },
+    /* idle acima de 0,18 s: o ímã fica ligado, e o alvo já é um cartão inteiro, então ele não puxa para trás */
+    step: (n) => { target = Math.round(target) + n; idle = 0.5; },
+    target: () => target,
+    settle: (to) => { target = Math.round(to); idle = 0.5; },
     goTo: (i) => {
       const s = order.indexOf(i);
       if (s < 0) return;

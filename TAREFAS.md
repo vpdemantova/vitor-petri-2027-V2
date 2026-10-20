@@ -39,7 +39,7 @@
 |---|---|---|
 | Rodar no computador | `npm run dev` | http://localhost:5190 |
 | Conferir tudo (tipos, lint, testes) | `npm run check` | o mesmo que a Vercel e o GitHub (VP-98) rodam a cada envio |
-| Só os testes | `npm test` | 46 testes (Vitest): um por projeto, as contas e o `/pt` dos endereços |
+| Só os testes | `npm test` | 57 testes (Vitest): um por projeto, as contas, o `/pt` dos endereços e a roda e o arrasto |
 | Gerar a versão final | `npm run build` | sai em `dist/`, com uma página por projeto |
 | Ver a versão final | `npm run preview` | http://localhost:5191 |
 | Refazer as imagens, as prévias e os ícones | `npm run images` | lê `media/`, grava `public/img/`, `public/og/` e os ícones |
@@ -282,6 +282,12 @@
 - [ ] **VP-105** · [P2 · média] **Vídeos que precisam de alguém jogando:** o DRIFT (`D:\www\bhop-surf`), o Jardim (no Jadesun) e o passeio no Laboratório ("a volta na ilha" do plano da VP-95; o vídeo de hoje é a praça parada, com a logo girando). Os três só se mexem com teclas, então o gravador ganharia um roteiro de entradas (andar, pular, virar a câmera) entre a espera e a gravação. O DRIFT e o Jardim só rodam neste computador: gravar daqui.
   *Prompt:* "faz a VP-105 com o DRIFT primeiro."
 - [ ] **VP-106** · [P3 · pequena] **Foto e vídeo iguais no primeiro quadro.** Quando o vídeo entra sobre a foto, o conteúdo muda um pouco, porque a foto é de outro dia. A ideia: o `npm run videos` também salvar o quadro de 0,6 s (o começo do laço) como a foto do cartão, em `media/sites/<id>.jpg`, e o `npm run images` refazer o cartão, a versão de 800 px e a prévia. *Muda as fotos dos cartões e as prévias de compartilhamento: decisão sua.*
+- [x] **VP-107** · [P1 · pequena] **Os cliques não funcionavam** (você, 19/out: "não estão clicando em nada… só quando aperto enter abre o projeto e esc fecha"). *Corrigido em 19/out/2026.* A causa: a regra `#app > * { pointer-events: auto }` pesava mais que as classes e ligava os cliques no **cursor próprio** (VP-15), uma bolinha que fica sempre embaixo do mouse. Ela pegava todos os cliques: o cartão, o menu, o contato, os botões do pé. O defeito estava no ar desde a V2 (16/out), e os testes de antes usavam só teclado e toque. Agora a regra tem peso zero (`:where(#app) > *`), e o cursor, a abertura e a faixa do alto deixam o clique passar. De quebra: com o contato aberto, clicar na galeria só fecha o contato (antes, fechava e abria a ficha que estava atrás).
+  Conferido com o mouse de verdade (no protocolo do navegador): o cartão da vez abre a ficha, um cartão de trás leva a galeria até ele, VIEW PROJECT, INDEX, PROFILE, os filtros, o fechar, o Contact, a Sala, o PT e o toque no celular.
+- [x] **VP-108** · [P1 · pequena] **A rolagem numa direção só** (você, 19/out: "a galeria deve dar scroll em uma direção só"). *Corrigido em 19/out/2026.* Antes, cada dente da roda andava ~0,24 de cartão e o ímã puxava de volta: a galeria ia e voltava, e três dentes devagar não saíam do lugar. Agora (`src/core/gesture.ts`, com 11 testes):
+  - **a roda:** cada gesto anda pelo menos um cartão inteiro, já no primeiro dente, na direção em que você rolou, e não volta; rolando mais no mesmo gesto, mais um a cada ~260 px. O tremor do fim do embalo de um trackpad não puxa para trás;
+  - **o arrasto:** um eixo só por gesto (o que andou mais no começo) e, ao soltar, o próximo cartão inteiro nessa direção; só um arrasto mínimo (menos de 12% de um cartão) volta para onde estava.
+  *Se o que você quis dizer foi outra coisa* (por exemplo, os cartões virem sempre do mesmo lado, em vez de alternar os cantos como nas telas), diga: "VP-108: os cartões vêm de [um lado só]".
 
 ---
 
@@ -345,5 +351,6 @@
 | 19/out/2026 | Lighthouse local, celular simulado: de 63 para 82 (a maior pintura de 4,1 s para 1,9 s). Computador: 97/100/100/100. Acessibilidade, boas práticas e SEO em 100, também na página em português. | VP-99 |
 | 19/out/2026 | `npm run images` só refaz o que mudou. 46 testes. Descartada: a VP-100 (o MP3 é o único original). Abertas: VP-103 a VP-106, e a seção de rotinas (§14). | VP-102, §13, §14 |
 | 19/out/2026 | **Publicado** (be07979): o GitHub Actions passou e a Vercel pôs no ar sozinha. Conferido no endereço público: o vídeo toca no cartão da vez, `/pt` em português, no celular os cartões de 800 px, console limpo. Lighthouse público (do Windows): celular 81–83, computador 97/100/100/100. | VP-80, 81, 98, 99 |
+| 19/out/2026 | **Você achou dois defeitos:** os cliques não funcionavam (o cursor próprio pegava todos) e a roda ia e voltava. Os dois corrigidos e conferidos com mouse, roda, arrasto e toque. 57 testes. | VP-107, VP-108 |
 
-*Último número em uso: VP-106. O próximo é VP-107 (ou o primeiro número livre da categoria).*
+*Último número em uso: VP-108. O próximo é VP-109 (ou o primeiro número livre da categoria).*

@@ -49,7 +49,11 @@ body {
 }
 #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; touch-action: none; }
 #app { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
-#app > * { pointer-events: auto; }
+/* VP-107 (19/out/2026): a regra geral com peso zero (:where). Antes, "#app > *" pesava mais que as classes e
+   ligava os cliques no cursor próprio, que fica sempre embaixo do mouse: ele pegava todos os cliques (o cartão,
+   o menu, o contato), e só o teclado funcionava. Agora o "pointer-events: none" do .cursor, da .preloader e do
+   .top (só os filhos dele recebem o clique) vale de verdade. */
+:where(#app) > * { pointer-events: auto; }
 button { font: inherit; color: inherit; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--lavender); outline-offset: 3px; }
