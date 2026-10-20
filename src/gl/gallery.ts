@@ -5,9 +5,13 @@
    A FILA. Os cartões ficam ao longo do eixo da câmera, separados por D
    metros. A rolagem (roda, dedo, setas) anda por essa fila; o cartão da
    vez fica a FOCUS metros da câmera, no meio da tela. Os de trás ficam
-   menores e mais escuros, espalhados pelos quatro cantos (como nas
-   telas); o que passa da vez cresce, sai pelo lado e some. A fila não tem
-   fim (dá a volta; com menos de três cartões, não dá).
+   menores e mais escuros; o que passa da vez cresce, sai pelo lado e
+   some. A fila não tem fim (dá a volta; com menos de três cartões, não dá).
+   Desde 20/out/2026 (VP-109, "uma direção somente e não alternado"), a
+   fila é uma linha só: os de trás sobem para a direita e se juntam no
+   canto, e o que passou desce para a esquerda (gl/math.ts, laneOffset).
+   Antes, eles alternavam os cantos e cada um saía pelo canto de onde veio;
+   esse desenho continua em ?alternado, para comparar.
 
    A FÍSICA da rolagem: a entrada soma no alvo; a posição persegue o alvo
    com uma mola criticamente amortecida; parada, encaixa no cartão mais
@@ -51,7 +55,7 @@ import {
 } from "three/tsl";
 import { PROJECTS, aspectOf, colorOf, hasImage, imageUrl, videoUrl, type Category, type Project } from "../content/projects";
 import { drawCover, loadCoverFonts } from "../ui/musiccard";
-import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility } from "./math";
+import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility, laneOffset, LANE } from "./math";
 
 export const D = 1.3;        // metros entre um cartão e o próximo (o de trás fica com ~75% do tamanho, como nas telas)
 export const FOCUS = 3.35;   // a distância do cartão da vez até a câmera
@@ -63,8 +67,8 @@ const ZR = 5.2;              // a distância, no corredor, até o cartão da vez
 const WR = 1.6;              // metade da largura do corredor
 const FLOOR = -1.18;         // a altura do chão
 
-/* para onde cada cartão "foge" quando não é a vez dele (x, y em metros) —
-   o desenho das telas: em cima à direita, embaixo à esquerda, alternando */
+/* ?alternado (o desenho de 16/out, antes da VP-109): para onde cada cartão "foge" quando não é a
+   vez dele (x, y em metros), em cima à direita e embaixo à esquerda, alternando */
 const SPREAD: [number, number][] = [
   [0.86, 0.5], [-0.78, -0.5], [0.98, 0.36], [-0.9, -0.38], [0.72, 0.6], [-0.66, -0.6], [0.94, 0.48], [-0.84, -0.46],
 ];
@@ -149,6 +153,8 @@ export interface Gallery {
 export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGPURenderer, reduced: boolean): Gallery {
   const group = new THREE.Group();
   scene.add(group);
+  /* VP-109: ?alternado volta ao desenho de antes (os cantos alternados), para comparar */
+  const ALTERNATE = new URLSearchParams(location.search).has("alternado");
   /* uma malha só para todos: um plano 1 × 1 com divisões (para dobrar) */
   const geometry = new THREE.PlaneGeometry(1, 1, 32, 18);
   const placeholder = new THREE.Texture();
@@ -370,18 +376,31 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       /* a abertura: os cartões vêm do fundo, um depois do outro */
       const rv = clampJS(reveal * 1.6 - s * 0.03 - Math.max(0, rel) * 0.035, 0, 1);
       const enter = (1 - easeOut(rv)) * 9;
-      const spread = SPREAD[s % SPREAD.length];
-      /* em pé, os vizinhos vão mais para cima e para baixo que para os lados */
-      const sx = spread[0] * (portrait ? 0.42 : 1), sy = spread[1] * (portrait ? 1.9 : 1);
       const focus = 1 - ss(0.12, 0.55, Math.abs(rel) / D);
       /* VP-35: o da vez inclina com o mouse, até 4° */
       const tilt = reduced ? 0 : focus * 0.07;
-      /* os de trás se afastam com a profundidade (senão convergem para o meio e somem atrás do da vez),
-         e os em pé, mais estreitos, ganham o que falta da largura de um site: todos espiam pelos cantos */
-      const deep = rel > D ? (FOCUS + rel) / (FOCUS + D) : 1;
-      const narrow = Math.sign(sx) * Math.max(0, (SITE_W - card.w) * 0.5) * (portrait ? 0.3 : 1);
-      const qx = (sx * deep + narrow) * away * k, qy = sy * deep * away * k, qz = (-FOCUS - rel - enter) * k;
-      const qrx = spread[1] * 0.05 * away - pointer.y * tilt, qry = -spread[0] * 0.07 * away + pointer.x * tilt;
+      const qz = (-FOCUS - rel - enter) * k;
+      let qx: number, qy: number, qrx: number, qry: number;
+      if (ALTERNATE) {
+        const spread = SPREAD[s % SPREAD.length];
+        /* em pé, os vizinhos vão mais para cima e para baixo que para os lados */
+        const sx = spread[0] * (portrait ? 0.42 : 1), sy = spread[1] * (portrait ? 1.9 : 1);
+        /* os de trás se afastam com a profundidade (senão convergem para o meio e somem atrás do da vez),
+           e os em pé, mais estreitos, ganham o que falta da largura de um site: todos espiam pelos cantos */
+        const deep = rel > D ? (FOCUS + rel) / (FOCUS + D) : 1;
+        const narrow = Math.sign(sx) * Math.max(0, (SITE_W - card.w) * 0.5) * (portrait ? 0.3 : 1);
+        qx = (sx * deep + narrow) * away * k; qy = sy * deep * away * k;
+        qrx = spread[1] * 0.05 * away - pointer.y * tilt; qry = -spread[0] * 0.07 * away + pointer.x * tilt;
+      } else {
+        /* VP-109: numa linha só. laneOffset dá o lugar "na tela"; vezes a distância até a câmera, em metros.
+           Os em pé, mais estreitos, ganham o que falta da largura de um site, para espiar tanto quanto. */
+        const u = rel / D;
+        const lane = laneOffset(u, portrait);
+        const dist = FOCUS + rel;
+        const narrow = Math.sign(u) * Math.max(0, (SITE_W - card.w) * 0.5) * (portrait ? 0.3 : 1) * Math.min(1, Math.abs(u));
+        qx = (lane.x * dist + narrow) * k; qy = (lane.y - (portrait ? LANE.portraitDrop : 0)) * dist * k;
+        qrx = LANE.rx * lane.t - pointer.y * tilt; qry = LANE.ry * lane.t + pointer.x * tilt;
+      }
       let alphaQ = visibility(rel, L, D, N) * easeOut(rv);
 
       /* a sala: os cartões nas paredes, alternando os lados */

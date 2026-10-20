@@ -1,6 +1,6 @@
 /* VP-71: as contas puras da galeria (gl/math.ts). */
 import { describe, expect, it } from "vitest";
-import { wrap, indexOf, shortestTarget, springStep, fitScale, visibility, counterText, smoothstep } from "./math";
+import { wrap, indexOf, shortestTarget, springStep, fitScale, visibility, counterText, smoothstep, laneOffset, LANE } from "./math";
 import { hourTint } from "./hour";
 
 const D = 1.3;
@@ -70,6 +70,44 @@ describe("quem aparece", () => {
 describe("pequenas", () => {
   it("o contador com dois algarismos", () => { expect(counterText(2, 21)).toBe("03 / 21"); });
   it("o smoothstep nas pontas", () => { expect(smoothstep(0, 1, -1)).toBe(0); expect(smoothstep(0, 1, 2)).toBe(1); });
+});
+
+describe("a fila numa direção só (VP-109)", () => {
+  it("o da vez fica no meio", () => {
+    const o = laneOffset(0, false);
+    expect(o.x).toBe(0); expect(o.y).toBe(0); expect(o.t).toBe(0);
+  });
+  it("o primeiro de trás fica onde já ficava (o primeiro canto das telas)", () => {
+    const o = laneOffset(1, false);
+    expect(o.x).toBeCloseTo(0.86 / 4.65); expect(o.y).toBeCloseTo(0.5 / 4.65); expect(o.t).toBeCloseTo(1);
+  });
+  it("todos os de trás do mesmo lado, cada um mais para o canto, cada vez mais juntos", () => {
+    const xs = [1, 2, 3].map((u) => laneOffset(u, false).x);
+    expect(xs.every((x) => x > 0)).toBe(true);
+    expect(xs[1]).toBeGreaterThan(xs[0]); expect(xs[2]).toBeGreaterThan(xs[1]);
+    expect(xs[2] - xs[1]).toBeLessThan(xs[1] - xs[0]);
+    expect([1, 2, 3].every((u) => laneOffset(u, false).y > 0)).toBe(true);
+  });
+  it("o que passou vai para o outro lado (para baixo e para a esquerda), nunca volta para o canto de onde veio", () => {
+    for (const u of [-0.2, -0.5, -1]) { const o = laneOffset(u, false); expect(o.x).toBeLessThan(0); expect(o.y).toBeLessThan(0); }
+    expect(laneOffset(-1, false).x).toBeCloseTo(-LANE.x * LANE.exit);
+  });
+  it("a curva não quebra no foco (chega e sai na mesma velocidade)", () => {
+    const e = 1e-4;
+    const before = (laneOffset(0, false).x - laneOffset(-e, false).x) / e, after = (laneOffset(e, false).x - laneOffset(0, false).x) / e;
+    expect(Math.abs(before - after) / after).toBeLessThan(0.01);
+  });
+  it("depois do primeiro, os de trás quase não sobem mais (ficam abaixo do menu), sem descer nem quebrar", () => {
+    const y = (u: number) => laneOffset(u, false).y;
+    expect(y(2)).toBeGreaterThan(y(1)); expect(y(3)).toBeGreaterThan(y(2));
+    expect(y(2) / y(1)).toBeLessThan(1.25); expect(y(3) / y(1)).toBeLessThan(1.35);
+    const e = 1e-4, before = (y(1) - y(1 - e)) / e, after = (y(1 + e) - y(1)) / e;
+    expect(Math.abs(before - after) / before).toBeLessThan(0.02);
+  });
+  it("em pé, mais para cima que para o lado", () => {
+    const o = laneOffset(1, true);
+    expect(o.y / o.x).toBeGreaterThan(laneOffset(1, false).y / laneOffset(1, false).x);
+  });
 });
 
 describe("a cor da hora (VP-17)", () => {

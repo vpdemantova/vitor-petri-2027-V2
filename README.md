@@ -29,7 +29,8 @@ No fim do endereço:
 - `?hora=18`, que finge a hora de Campinas;
 - `?arrasto=1.3`, o arrasto mais sensível;
 - `?ref=3`, o modo comparação (as telas ficam em `ref/`, fora do git: ver a VP-94);
-- `?semvideo`, só as fotos nos cartões.
+- `?semvideo`, só as fotos nos cartões;
+- `?alternado`, os cartões de trás alternando os cantos, como antes da VP-109.
 
 ## O que tem
 
@@ -101,7 +102,7 @@ Diferenças em relação às telas:
 
 - **WebGPU, com WebGL2 de reserva.** O `WebGPURenderer` do three.js escolhe o motor. Os materiais são escritos em **TSL** (a linguagem de nós do three), que vira WGSL no WebGPU e GLSL no WebGL2: o mesmo código nos dois.
 - **A galeria** (`src/gl/gallery.ts`; as contas puras em `src/gl/math.ts`, com testes):
-  - **a fila:** os cartões ao longo do eixo da câmera, sem fim. O da vez fica no foco; os de trás ficam menores, mais escuros e um pouco desfocados (um mipmap mais alto), espiando pelos cantos;
+  - **a fila:** os cartões ao longo do eixo da câmera, sem fim. O da vez fica no foco; os de trás ficam menores, mais escuros e um pouco desfocados (um mipmap mais alto). Desde 20/out (VP-109), numa direção só: os de trás todos em cima à direita, cada um mais longe, e o que passou desce para a esquerda (`laneOffset` em `src/gl/math.ts`); o desenho de antes, com os cantos alternados, continua em `?alternado`;
   - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto. A roda e o arrasto decidem (VP-108, `src/core/gesture.ts`): cada gesto anda pelo menos um cartão inteiro na direção dele, e nunca volta sozinho;
   - **a velocidade:** entra nos shaders. O cartão **dobra** e as cores **se separam** nas bordas; ao assentar, um **anel** sai do centro da imagem;
   - **os filtros:** a fila se refaz só com a categoria;

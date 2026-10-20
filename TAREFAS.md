@@ -39,7 +39,7 @@
 |---|---|---|
 | Rodar no computador | `npm run dev` | http://localhost:5190 |
 | Conferir tudo (tipos, lint, testes) | `npm run check` | o mesmo que a Vercel e o GitHub (VP-98) rodam a cada envio |
-| Só os testes | `npm test` | 57 testes (Vitest): um por projeto, as contas, o `/pt` dos endereços e a roda e o arrasto |
+| Só os testes | `npm test` | 64 testes (Vitest): um por projeto, as contas (a fila numa direção só, inclusive), o `/pt` dos endereços e a roda e o arrasto |
 | Gerar a versão final | `npm run build` | sai em `dist/`, com uma página por projeto |
 | Ver a versão final | `npm run preview` | http://localhost:5191 |
 | Refazer as imagens, as prévias e os ícones | `npm run images` | lê `media/`, grava `public/img/`, `public/og/` e os ícones |
@@ -58,6 +58,7 @@
 | `?arrasto=1.3` | o arrasto 30% mais sensível (VP-24) |
 | `?ref=3` | o modo comparação com a tela 3 (VP-10); as telas ficam em `ref/` (VP-94) |
 | `?semvideo` | só as fotos nos cartões (VP-95) |
+| `?alternado` | os cartões de trás alternando os cantos, como antes da VP-109 (para comparar) |
 | `/pt/…` | a mesma página em português (VP-101): `/pt`, `/pt/index`, `/pt/project/laboratorio` |
 
 ### No teclado
@@ -287,7 +288,15 @@
 - [x] **VP-108** · [P1 · pequena] **A rolagem numa direção só** (você, 19/out: "a galeria deve dar scroll em uma direção só"). *Corrigido em 19/out/2026.* Antes, cada dente da roda andava ~0,24 de cartão e o ímã puxava de volta: a galeria ia e voltava, e três dentes devagar não saíam do lugar. Agora (`src/core/gesture.ts`, com 11 testes):
   - **a roda:** cada gesto anda pelo menos um cartão inteiro, já no primeiro dente, na direção em que você rolou, e não volta; rolando mais no mesmo gesto, mais um a cada ~260 px. O tremor do fim do embalo de um trackpad não puxa para trás;
   - **o arrasto:** um eixo só por gesto (o que andou mais no começo) e, ao soltar, o próximo cartão inteiro nessa direção; só um arrasto mínimo (menos de 12% de um cartão) volta para onde estava.
-  *Se o que você quis dizer foi outra coisa* (por exemplo, os cartões virem sempre do mesmo lado, em vez de alternar os cantos como nas telas), diga: "VP-108: os cartões vêm de [um lado só]".
+  Você respondeu (20/out): "era isso, uma direção somente e não alternado". Feito na VP-109; a roda e o arrasto daqui continuam valendo.
+- [x] **VP-109** · [P1 · média] **Os cartões numa direção só, sem alternar os cantos.** *20/out/2026.* Antes, os de trás alternavam os cantos (em cima à direita, embaixo à esquerda, como nas telas), e cada um entrava e saía pelo canto de onde veio: a cada cartão a rolagem parecia mudar de direção. Agora a fila é uma linha só (`laneOffset` em `src/gl/math.ts`, com 7 testes):
+  - **os de trás** ficam todos em cima à direita. O primeiro está exatamente onde já estava (o primeiro canto das telas), e os seguintes vão para a direita, cada um mais longe e mais junto do anterior, abaixo do menu;
+  - **o que passou** desce para a esquerda e some, acelerando para o lado para não cobrir o da vez;
+  - rolar para a frente leva tudo para baixo e para a esquerda, sempre; rolar para trás, o contrário. A curva não quebra no foco nem no primeiro de trás (o movimento é contínuo);
+  - **em pé** (celular), a fila inteira desce um pouco (6% da altura): o de trás fica inteiro, abaixo do menu, e a metade de baixo não fica vazia;
+  - **para comparar**, o desenho de antes continua em `?alternado`.
+  O modo **sala** (R) continua com os cartões nas duas paredes, alternando os lados (é um corredor); a rolagem lá também anda numa direção só. Se quiser a sala com uma parede só: "VP-109: a sala com uma parede só".
+  Conferido no computador (1440 × 900) e no celular (390 × 844): parado, no meio da rolagem e depois; o clique e o toque no cartão da vez e nos de trás.
 
 ---
 
@@ -352,5 +361,6 @@
 | 19/out/2026 | `npm run images` só refaz o que mudou. 46 testes. Descartada: a VP-100 (o MP3 é o único original). Abertas: VP-103 a VP-106, e a seção de rotinas (§14). | VP-102, §13, §14 |
 | 19/out/2026 | **Publicado** (be07979): o GitHub Actions passou e a Vercel pôs no ar sozinha. Conferido no endereço público: o vídeo toca no cartão da vez, `/pt` em português, no celular os cartões de 800 px, console limpo. Lighthouse público (do Windows): celular 81–83, computador 97/100/100/100. | VP-80, 81, 98, 99 |
 | 19/out/2026 | **Você achou dois defeitos:** os cliques não funcionavam (o cursor próprio pegava todos) e a roda ia e voltava. Os dois corrigidos e conferidos com mouse, roda, arrasto e toque. 57 testes. | VP-107, VP-108 |
+| 20/out/2026 | Os cartões numa direção só: os de trás todos em cima à direita, o que passou desce para a esquerda; em pé, a fila desce um pouco; o desenho de antes em `?alternado`. 64 testes. | VP-109 |
 
-*Último número em uso: VP-108. O próximo é VP-109 (ou o primeiro número livre da categoria).*
+*Último número em uso: VP-109. O próximo é VP-110 (ou o primeiro número livre da categoria).*
