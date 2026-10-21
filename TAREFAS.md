@@ -39,7 +39,7 @@
 |---|---|---|
 | Rodar no computador | `npm run dev` | http://localhost:5190 |
 | Conferir tudo (tipos, lint, testes) | `npm run check` | o mesmo que a Vercel e o GitHub (VP-98) rodam a cada envio |
-| Só os testes | `npm test` | 68 testes (Vitest): um por projeto, as contas (a fila, a profundidade e quem aparece, inclusive), o `/pt` dos endereços e a roda e o arrasto |
+| Só os testes | `npm test` | 78 testes (Vitest): um por projeto, as contas (a fila, a troca em arco, a profundidade e quem aparece), o `/pt` dos endereços, a roda, o arrasto e o embalo, e a homografia do voo da ficha |
 | Gerar a versão final | `npm run build` | sai em `dist/`, com uma página por projeto |
 | Ver a versão final | `npm run preview` | http://localhost:5191 |
 | Refazer as imagens, as prévias e os ícones | `npm run images` | lê `media/`, grava `public/img/`, `public/og/` e os ícones |
@@ -62,7 +62,7 @@
 | `/pt/…` | a mesma página em português (VP-101): `/pt`, `/pt/index`, `/pt/project/laboratorio` |
 
 ### No teclado
-`← →` (ou `↑ ↓`) muda de projeto · `Enter` abre · `I` índice · `P` perfil · `C` contato · `R` a sala · `S` o som · `L` a língua · `Esc` fecha · `?` mostra esta lista na tela.
+`← →` (ou `↑ ↓`) muda de projeto · `Enter` abre · `I` índice · `P` perfil · `C` contato · `R` a sala · `L` a língua · `Esc` fecha · `?` mostra esta lista na tela. (`S`, o som, volta quando o som voltar: VP-114.)
 
 ### Antes de dar uma tarefa por pronta
 - [ ] `npm run check` e `npm run build` sem erro.
@@ -220,7 +220,7 @@
 
 ## 11. Ideias grandes
 
-- [x] **VP-90 · O site como instrumento.** *16/out/2026*, com o som desligado por padrão (o botão **Som** no pé, ou S). Cada cartão tem uma nota, de uma pentatônica de ré em duas oitavas. Rolar devagar toca as notas uma a uma; rolar depressa, um arpejo, no andamento da mão. O timbre é feito na hora (Web Audio, nenhum arquivo), como uma celesta ao longe (`src/core/sound.ts`).
+- [x] **VP-90 · O site como instrumento.** *(Desligado por ora desde 21/out: VP-114.)* *16/out/2026*, com o som desligado por padrão (o botão **Som** no pé, ou S). Cada cartão tem uma nota, de uma pentatônica de ré em duas oitavas. Rolar devagar toca as notas uma a uma; rolar depressa, um arpejo, no andamento da mão. O timbre é feito na hora (Web Audio, nenhum arquivo), como uma celesta ao longe (`src/core/sound.ts`).
 - [x] **VP-91 · O modo sala.** *16/out/2026*, com R ou o botão **Room** ("Sala") no pé. A fila vira um corredor: os cartões nas duas paredes, alternando os lados, o chão e as paredes escuros, com juntas que andam com a rolagem, e o brilho lavanda no fundo como horizonte. O cartão da vez vira para você; a rolagem anda pelo corredor. No celular, o botão some (falta lugar no pé): ver a VP-96.
 - [~] **VP-92 · Estudo de caso por projeto.** A estrutura está pronta: um trecho `<!-- process -->` (e `<!-- process.pt -->`) no arquivo do projeto vira a seção "Processo" da ficha, embaixo da descrição. *O conteúdo é seu:* os esboços, as decisões, o antes e o depois.
   *Prompt:* "VP-92 no [projeto]: [o processo, em tópicos ou corrido]."
@@ -317,6 +317,24 @@
   - **a abertura:** a poeira das partículas some em 1,1 s (eram 1,9 s, por cima dos cartões).
   Com "reduzir movimento", tudo troca na hora, sem voo.
 - [x] **VP-113** · [P1 · pequena] **Na sala, o botão do projeto no meio de baixo** (você, 21/out: "na sala, deixe o botão de projeto bem no meio inferior só trocando o nome dos projetos"). *21/out/2026.* Na sala, a etiqueta "Nome ↗ · VIEW PROJECT" fica parada no meio de baixo, na linha do Contact e do pé, e não some com o movimento: ao andar pelo corredor, só o nome troca (deslizando). No celular, fica logo acima do Contato e do pé. Na fila, ela continua presa ao canto do cartão da vez.
+- [x] **VP-114** · [P1 · pequena] **Sem o som, por enquanto** (você, 21/out: "remova o som por enquanto!"). *21/out/2026.* O som do site está desligado por uma chave só, `SOUND_ENABLED` em `src/core/sound.ts`: o botão Som saiu do pé, a tecla S e a linha dela nos atalhos também, as notas da galeria e a prévia da gravação não tocam, e quem tinha deixado o som ligado (guardado no navegador) também não ouve nada. O tocador da Chanson Antique na ficha continua, porque só toca com um clique. Para voltar: `SOUND_ENABLED = true`.
+  *Prompt:* "VP-114: liga o som de novo."
+- [x] **VP-115** · [P1 · média] **A troca de cartão sem estalo** (você, 21/out: "as animações estão bem ruins ainda! ponha mais atenção nelas todas"). *21/out/2026.* Filmei um passo da galeria em câmera lenta (8×) e vi o problema: no meio do caminho, o da vez e o próximo passavam pela mesma profundidade, um por cima do outro, e a troca de quem fica na frente aparecia como um estalo. Agora a troca é em arco (`laneSwing` em `src/gl/math.ts`, com um teste que garante que os dois não se tocam no meio): o que chega passa por cima, o que sai passa por baixo, e eles trocam de frente no vão entre os dois. A câmera não anda mais com a rolagem (na VP-111 ela recuava, olhava e inclinava, e a cena inteira balançava): fica só a paralaxe do mouse.
+- [x] **VP-116** · [P1 · pequena] **A galeria rola mais depois de soltar o mouse** (você, 21/out: "deixe a galeria rolar mais depois que o mouse larga, diminua o freio"). *21/out/2026.* Antes, ao soltar, o embalo valia no máximo uma fração de cartão (a conta usava só o último movimento) e a mola freava forte. Agora (`releaseVelocity`, `coast` e `GLIDE` em `src/core/gesture.ts`, com 4 testes):
+  - a velocidade da mão é medida nos últimos ~100 ms (a mão parada antes de soltar não joga a fila);
+  - a fila continua deslizando com esse embalo, com um freio leve, até o cartão inteiro em que ele a leva: um arremesso de mouse anda uns 2 a 4 cartões, um de dedo, mais; o teto é 12;
+  - o deslize sai da mão sem tranco: a mola é escolhida para chegar ao cartão só com o embalo, sem passar nem voltar;
+  - a mola de todo dia ficou um pouco mais macia (o freio da roda e das setas também).
+  Para ajustar: `GLIDE.omega` (menor = vai mais longe). Também dá para testar no celular com `?arrasto=1.3`.
+- [x] **VP-117** · [P1 · pequena] **A etiqueta sem vão nem viagem.** *21/out/2026.* Antes, ao trocar de cartão, o nome saía, a pílula ficava um instante vazia e o novo entrava; e a etiqueta que reaparecia viajava do canto do cartão antigo até o do novo. Agora ela some depressa quando a fila anda e reaparece já no lugar, devagar, quando o cartão novo assenta; na sala (onde fica à vista), o nome velho sobe enquanto o novo entra por baixo, ao mesmo tempo, e a pílula muda de largura junto.
+- [x] **VP-118** · [P1 · pequena] **Anterior e próximo fixos embaixo da ficha** (você, 21/out: "o anterior e próximo devem ficar fixos em baixo do card de projeto"). *21/out/2026.* A barra anterior / próximo é agora uma faixa fixa no pé da ficha, de ponta a ponta (o anterior à esquerda, o próximo à direita), sempre no mesmo lugar: o texto e as imagens rolam por cima dela. Antes, ela ficava no fim do texto, mudava de lugar a cada projeto e, nos de texto longo, nem aparecia. No celular, a ficha inteira rola e a barra fica presa no pé dela, com um fundo de vidro. Ao passar de projeto, a barra não sai: só os nomes trocam. Conferido: rolando o texto, a barra não se mexe; o clique em "próximo" e em "anterior" funciona.
+- [x] **VP-119** · [P1 · média] **A ficha nasce do cartão 3D de verdade.** *21/out/2026.* Antes, a imagem que voa do cartão até a ficha nascia do retângulo em volta do cartão, e o cartão está em perspectiva: o voo começava com um salto. Agora ela nasce exatamente em cima do cartão, com a mesma perspectiva (os quatro cantos do cartão na tela e uma homografia: `src/ui/quad.ts`, com 4 testes; a técnica é de Heckbert, 1989), e vai se endireitando até o lugar dela; ao fechar, volta seguindo o cartão vivo (que ainda se move) e o vidro da ficha se desfaz logo no começo, em vez de encolher como uma caixa branca vazia.
+- [x] **VP-120** · [P1 · pequena] **O contato com o botão de fechar, maior e com respiro** (você, 21/out: "um botão de fechar no de contato, deixe esse menu um pouquinho maior pra caber com mais respiro"). *21/out/2026.* O cartão de contato ganhou o × no canto (como os painéis; o Esc e o clique fora continuam fechando), ficou maior (460 em vez de 372 nas medidas de 1920 px, e no celular até 340 px) e com mais espaço entre as linhas e em volta. A animação também mudou: a pílula "Contact" vira o cartão de verdade, crescendo do formato dela (os cantos não deformam), o texto entra depois, e ao fechar o caminho é o de volta, com a pílula reaparecendo no fim.
+- [x] **VP-121** · [P2 · pequena] **O Perfil e o Índice sem pulos.** *21/out/2026.* O Perfil abria e fechava por um recorte que o navegador abreviava, e a animação pulava (ao fechar, não encolhia: sumia). Agora o recorte é escrito a cada quadro, por um número só, e encolhe de verdade até o meio. A saída do Índice e do Perfil começa a andar na hora (antes, ficava quase parada no primeiro quinto de segundo), e um painel reaberto no meio da saída continua de onde está.
+- [x] **VP-122** · [P2 · pequena] **A abertura em ordem.** *21/out/2026.* Os cartões só começam a chegar quando o logotipo grande já voou quase todo até o canto (antes, ele passava por cima dos cartões que entravam); depois, o menu, o contato e o pé, um de cada vez.
+- [x] **VP-123** · [P2 · pequena] **Entrar e sair da sala sem fantasmas.** *21/out/2026.* Na passagem da fila para a sala (e de volta), os cartões que somem num modo esmaeciam durante o caminho inteiro e atravessavam a tela meio transparentes. Agora quem some, some logo no começo, e quem aparece, só no fim.
+
+Como conferi as animações desta rodada: o relógio da página 4 a 8 vezes mais lento e uma tira de fotos a cada ~100 ms de cada transição (a galeria, a ficha, o contato, o Perfil, o Índice, a sala e a abertura), vistas quadro a quadro antes e depois de cada mudança; e um roteiro que clica, rola, arrasta e toca em tudo, no computador e no celular, nos dois motores e com "reduzir movimento".
 
 ---
 
@@ -383,5 +401,6 @@
 | 19/out/2026 | **Você achou dois defeitos:** os cliques não funcionavam (o cursor próprio pegava todos) e a roda ia e voltava. Os dois corrigidos e conferidos com mouse, roda, arrasto e toque. 57 testes. | VP-107, VP-108 |
 | 20/out/2026 | Os cartões numa direção só: os de trás todos em cima à direita, o que passou desce para a esquerda; em pé, a fila desce um pouco; o desenho de antes em `?alternado`. 64 testes. | VP-109 |
 | 21/out/2026 | O brilho do movimento bem mais baixo; o anterior de volta, atrás e embaixo à esquerda, com a câmera que anda junto e o arranque suave; as entradas e saídas sem sobreposição (a imagem do cartão voa até a ficha e volta); na sala, a etiqueta parada no meio de baixo. Conferido quadro a quadro. 68 testes. | VP-110 a VP-113 |
+| 21/out/2026 | À noite: sem o som (por ora); a troca de cartão em arco, sem estalo, e a câmera parada; a galeria rola mais depois de soltar; anterior e próximo numa barra fixa no pé da ficha; a ficha nasce do cartão 3D com a mesma perspectiva; o contato com ×, maior e com respiro, nascendo da pílula; o Perfil, o Índice, a abertura e a sala sem pulos. Conferido quadro a quadro, em câmera lenta. 78 testes. | VP-114 a VP-123 |
 
-*Último número em uso: VP-113. O próximo é VP-114 (ou o primeiro número livre da categoria).*
+*Último número em uso: VP-123. O próximo é VP-124 (ou o primeiro número livre da categoria).*

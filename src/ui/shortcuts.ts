@@ -5,11 +5,12 @@
 import gsap from "gsap";
 import { t, onLang, type Key } from "../core/i18n";
 import { h, trapFocus, prefersReducedMotion } from "./dom";
+import { SOUND_ENABLED } from "../core/sound";
 
 const KEYS: [string[], Key][] = [
   [["←", "→"], "kNext"], [["Enter"], "kOpen"], [["I"], "kIndex"], [["P"], "kProfile"], [["C"], "kContact"],
   [["R"], "kRoom"], [["S"], "kSound"], [["L"], "kLang"], [["Esc"], "kClose"], [["?"], "kHelp"],
-];
+].filter(([, d]) => SOUND_ENABLED || d !== "kSound") as [string[], Key][];
 
 export function createShortcuts() {
   const title = h("h2", { class: "keys-title", id: "keys-title" });

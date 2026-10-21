@@ -21,6 +21,13 @@
    olha para onde a fila vem e inclina de leve) e os de lado viram para o
    meio, como numa vitrine. O brilho do movimento ficou bem mais baixo
    (VP-110).
+   Desde 21/out/2026, à noite (VP-115 e VP-116, "as animações estão bem
+   ruins ainda… diminua o freio"): na troca, o que chega passa por cima e o
+   que sai passa por baixo, como numa roda (laneSwing): antes, os dois se
+   sobrepunham no instante em que um passava à frente do outro, e a troca
+   aparecia como um estalo. A câmera não anda mais com a rolagem (balançava
+   a cena inteira); fica só a paralaxe do mouse. O freio é mais macio, e o
+   arrasto, ao soltar, continua deslizando com o embalo da mão (glide).
 
    A FÍSICA da rolagem: a entrada soma no alvo; a posição persegue o alvo
    com uma mola criticamente amortecida; parada, encaixa no cartão mais
@@ -64,7 +71,7 @@ import {
 } from "three/tsl";
 import { PROJECTS, aspectOf, colorOf, hasImage, imageUrl, videoUrl, type Category, type Project } from "../content/projects";
 import { drawCover, loadCoverFonts } from "../ui/musiccard";
-import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility, laneOffset, laneDepth, laneVisibility, wrapSym, LANE } from "./math";
+import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility, laneOffset, laneDepth, laneVisibility, wrapSym, laneSwing, LANE } from "./math";
 
 export const D = 1.3;        // metros entre um cartão e o próximo (o de trás fica com ~75% do tamanho, como nas telas)
 export const FOCUS = 3.35;   // a distância do cartão da vez até a câmera
@@ -124,6 +131,8 @@ export interface Gallery {
   target: () => number;
   /** VP-108: o alvo vai para um cartão inteiro e fica (o arrasto, ao soltar) */
   settle: (to: number) => void;
+  /** VP-116: o arrasto, ao soltar com a mão andando: desliza até o cartão inteiro to, com o embalo de agora (sem tranco) */
+  glide: (to: number) => void;
   /** vai até o projeto i (índice de PROJECTS) pelo caminho mais curto */
   goTo: (index: number) => void;
   /** em que projeto o ponteiro está (coordenadas −1…1), ou null */
@@ -133,6 +142,8 @@ export interface Gallery {
   active: () => { index: number; focus: number; slot: number };
   /** o canto de baixo à direita do cartão da vez, em pixels da tela */
   anchor: (out: { x: number; y: number }) => boolean;
+  /** VP-119: os quatro cantos do cartão i na tela (em cima à esquerda, em cima à direita, embaixo à direita, embaixo à esquerda) */
+  screenQuad: (index: number) => [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }] | null;
   /** o retângulo que o cartão i ocupa na tela (para a ficha nascer dele) */
   screenRect: (index: number) => { x: number; y: number; w: number; h: number } | null;
   /** a abertura: os cartões chegam do fundo (0 → 1) */
@@ -284,6 +295,9 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
   /* VP-111: o alvo que a mola persegue segue o alvo de verdade com um atraso curto: o movimento arranca
      suave em vez de dar um tranco (o arrasto move os dois juntos, então continua direto na mão) */
   let follow = 0;
+  /* VP-116: a rigidez da mola; no deslize, ela é escolhida para a fila chegar ao alvo só com o embalo, sem voltar */
+  const STIFF = 30;
+  let glideK = 0;
   let roomOn = false, room = 0;
   const pointer = new THREE.Vector2();
   const camGoal = new THREE.Vector3();
@@ -293,8 +307,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
   const settleSubs: ((i: number) => void)[] = [];
   const tint = new THREE.Color("#878ee9"), tmpC = new THREE.Color();
   const tmpV = new THREE.Vector3();
-  /* VP-111: a inclinação da câmera com o movimento (radianos) */
-  let bank = 0;
+
 
   const applyOrder = (f: Filter) => {
     const activeProject = order[indexOf(pos, N)];
@@ -357,8 +370,9 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     idle += dt;
     if (N < 3) target = clampJS(target, 0, N - 1);
     if (idle > 0.18) target = damp(target, Math.round(target), 7, dt);
-    follow = reduced ? target : damp(follow, target, 11, dt);
-    ({ pos, vel } = springStep(pos, vel, follow, dt));
+    follow = reduced || glideK ? target : damp(follow, target, 11, dt);
+    ({ pos, vel } = springStep(pos, vel, follow, dt, glideK || STIFF));
+    if (glideK && Math.abs(target - pos) < 0.004 && Math.abs(vel) < 0.02) glideK = 0;
     /* VP-110: a dobra e as cores separadas pela velocidade, mais calmas (a roda anda de cartão em cartão desde
        a VP-108, e a velocidade de cada passo chegava perto do máximo) */
     const speed = reduced ? 0 : clampJS(vel * 0.2, -1, 1);
@@ -370,14 +384,10 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
 
     /* a câmera: um pouco de paralaxe com o mouse; na fila olha o foco, na sala, o fundo do corredor */
     const par = reduced ? 0 : 1;
-    /* VP-111: na fila, a câmera acompanha o movimento: recua um pouco (vê mais da fila), olha para o lado de onde
-       os cartões vêm e inclina de leve, como quem anda junto; parada, volta ao lugar. Na sala e no ?alternado, não. */
-    const sv = reduced || ALTERNATE ? 0 : clampJS(vel * 0.25, -1, 1) * (1 - R);
-    camGoal.set(pointer.x * 0.22 * par * k * (1 - R * 0.6), pointer.y * 0.14 * par * k * (1 - R * 0.5), Math.abs(sv) * 0.5 * k);
+    /* VP-115: a câmera não anda com a rolagem (na VP-111 ela recuava, olhava e inclinava, e a cena inteira balançava) */
+    camGoal.set(pointer.x * 0.22 * par * k * (1 - R * 0.6), pointer.y * 0.14 * par * k * (1 - R * 0.5), 0);
     camera.position.lerp(camGoal, 1 - Math.exp(-dt * 3.5));
-    look.set(sv * LANE.x * FOCUS * 0.3 * k, sv * LANE.y * FOCUS * 0.3 * k, -FOCUS * k).lerp(tmpV.set(pointer.x * 0.5 * par * k, -0.05 * k, -12 * k), R);
-    bank = damp(bank, -sv * 0.025, 6, dt);
-    camera.up.set(Math.sin(bank), Math.cos(bank), 0);
+    look.set(0, 0, -FOCUS * k).lerp(tmpV.set(pointer.x * 0.5 * par * k, -0.05 * k, -12 * k), R);
     camera.lookAt(look);
 
     /* o chão e as paredes, presos à câmera no eixo do corredor */
@@ -425,7 +435,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
         const lane = laneOffset(u, portrait);
         const dist = FOCUS + back;
         const narrow = Math.sign(u) * Math.max(0, (SITE_W - card.w) * 0.5) * (portrait ? 0.3 : 1) * Math.min(1, Math.abs(u));
-        qx = (lane.x * dist + narrow) * k; qy = lane.y * dist * k;
+        qx = (lane.x * dist + narrow) * k; qy = (lane.y + laneSwing(u, portrait)) * dist * k;
         qrx = LANE.rx * lane.t - pointer.y * tilt; qry = LANE.ry * lane.t + pointer.x * tilt;
       }
       let alphaQ = (ALTERNATE ? visibility(rel, L, D, N) : laneVisibility(rel / D, N)) * easeOut(rv);
@@ -447,7 +457,10 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
         const alphaR = ss(3.6, 4.8, zr) * (1 - ss(8 * DR, 11 * DR, relR)) * (N < 3 ? 1 : 1 - ss(LR - 2.1 * DR, LR - 1.55 * DR, relR)) * easeOut(rv);
         px = mix1(qx, ex, R); py = mix1(qy, ey, R); pz = mix1(qz, ez, R);
         rx = mix1(qrx, -pointer.y * tilt * 0.5, R); ry = mix1(qry, yaw + pointer.x * tilt * 0.4 * fR, R);
-        alphaQ = mix1(alphaQ, alphaR, R);
+        /* VP-123 (21/out/2026): quem some num dos modos some logo no começo da troca, e quem aparece, só no fim
+           (antes, o esmaecimento acompanhava o caminho inteiro, e o cartão atravessava a tela como um fantasma) */
+        const kk = alphaR < alphaQ ? ss(0, 0.3, R) : ss(0.55, 1, R);
+        alphaQ = mix1(alphaQ, alphaR, kk);
         card.u.dim.value = mix1(clampJS(back / (D * 3.4), 0, 0.55), clampJS(relR / (DR * 9), 0, 0.6), R);
         card.u.blur.value = reduced ? 0 : mix1(clampJS((back - D * 0.5) / D, 0, 1.6), clampJS((relR - DR) / (DR * 4), 0, 1.4), R);
       } else {
@@ -539,16 +552,24 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
 
   return {
     update,
-    nudge: (n) => { target += n; follow += n; idle = 0; },
+    nudge: (n) => { target += n; follow += n; idle = 0; glideK = 0; },
     /* idle acima de 0,18 s: o ímã fica ligado, e o alvo já é um cartão inteiro, então ele não puxa para trás */
-    step: (n) => { target = Math.round(target) + n; idle = 0.5; },
+    step: (n) => { target = Math.round(target) + n; idle = 0.5; glideK = 0; },
     target: () => target,
-    settle: (to) => { target = Math.round(to); idle = 0.5; },
+    settle: (to) => { target = Math.round(to); idle = 0.5; glideK = 0; },
+    glide: (to) => {
+      target = follow = Math.round(to); idle = 0.5;
+      /* a mola criticamente amortecida chega sem voltar quando a velocidade de agora é ω × a distância:
+         escolhe ω por isso (entre 1,8 e 7) e desliza até lá só com o embalo da mão */
+      const d = target - pos;
+      const w = Math.abs(d) > 1e-3 && Math.sign(vel) === Math.sign(d) ? clampJS(Math.abs(vel / d), 1.8, 7) : Math.sqrt(STIFF);
+      glideK = w * w;
+    },
     goTo: (i) => {
       const s = order.indexOf(i);
       if (s < 0) return;
       target = shortestTarget(target, s, N);
-      idle = 0.5;
+      idle = 0.5; glideK = 0;
     },
     pick,
     setHover: (i) => { hovered = i; },
@@ -567,6 +588,14 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       if (p.z > 1) return false;
       out.x = p.x; out.y = p.y;
       return true;
+    },
+    screenQuad: (i) => {
+      const c = cards[i];
+      if (!c || c.slot < 0) return null;
+      c.mesh.updateMatrixWorld();
+      const q = [project(c, -0.5, 0.5), project(c, 0.5, 0.5), project(c, 0.5, -0.5), project(c, -0.5, -0.5)];
+      if (q.some((p) => p.z > 1)) return null;
+      return q.map(({ x, y }) => ({ x, y })) as [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }, { x: number; y: number }];
     },
     screenRect: (i) => {
       const c = cards[i];

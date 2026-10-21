@@ -1,6 +1,6 @@
 /* VP-71: as contas puras da galeria (gl/math.ts). */
 import { describe, expect, it } from "vitest";
-import { wrap, indexOf, shortestTarget, springStep, fitScale, visibility, counterText, smoothstep, laneOffset, laneDepth, wrapSym, laneVisibility } from "./math";
+import { wrap, indexOf, shortestTarget, springStep, fitScale, visibility, counterText, smoothstep, laneOffset, laneDepth, wrapSym, laneVisibility, laneSwing } from "./math";
 import { hourTint } from "./hour";
 
 const D = 1.3;
@@ -133,6 +133,19 @@ describe("a fila numa direção só, com o anterior atrás (VP-109, VP-111)", ()
     expect(laneVisibility(-1, 22)).toBe(1);
     expect(laneVisibility(3, 22)).toBeLessThan(0.2);
     expect(laneVisibility(-2, 22)).toBeLessThan(0.1);
+  });
+  it("VP-115: na troca, o que chega sobe e o que sai desce; nas pontas, nada", () => {
+    expect(laneSwing(0, false)).toBe(0); expect(laneSwing(1, false)).toBe(0); expect(laneSwing(-1, false)).toBe(0); expect(laneSwing(2, false)).toBe(0);
+    expect(laneSwing(0.5, false)).toBeGreaterThan(0); expect(laneSwing(-0.5, false)).toBeLessThan(0);
+  });
+  it("VP-115: no meio da troca (a mesma profundidade), os dois cartões de site não se tocam", () => {
+    const FOCUS = 3.35, H = 1.25;
+    for (const portrait of [false, true]) {
+      const dist = FOCUS + laneDepth(0.5) * D;
+      const yIn = (laneOffset(0.5, portrait).y + laneSwing(0.5, portrait)) * dist;
+      const yOut = (laneOffset(-0.5, portrait).y + laneSwing(-0.5, portrait)) * dist;
+      expect(yIn - H / 2).toBeGreaterThanOrEqual(yOut + H / 2 - 1e-9);
+    }
   });
   it("com poucos cartões, ninguém troca de lado à vista (some antes da volta)", () => {
     for (const n of [4, 5, 6]) {

@@ -12,6 +12,7 @@
 import { t, getLang, onLang } from "../core/i18n";
 import { h } from "./dom";
 import { counterText } from "../gl/math";
+import { SOUND_ENABLED } from "../core/sound";
 
 export function createFoot(handlers: { onRoom: () => void; onSound: () => void; onLang: () => void }) {
   const cat = h("span", { class: "foot-cat" });
@@ -23,7 +24,8 @@ export function createFoot(handlers: { onRoom: () => void; onSound: () => void; 
   const room = h("button", { class: "foot-btn foot-room", type: "button", "aria-pressed": "false" }, roomIcon, roomText);
   const sound = h("button", { class: "foot-btn foot-sound", type: "button", "aria-pressed": "false" }, h("span", { class: "foot-bars", "aria-hidden": "true" }, h("i"), h("i"), h("i")), h("span", { class: "foot-sound-t" }));
   const lang = h("button", { class: "foot-btn foot-lang", type: "button" });
-  const el = h("div", { class: "foot" }, counter, h("div", { class: "foot-ctl" }, room, sound, lang));
+  /* VP-114: sem o som (por ora), sem o botão */
+  const el = h("div", { class: "foot" }, counter, h("div", { class: "foot-ctl" }, room, ...(SOUND_ENABLED ? [sound] : []), lang));
   room.addEventListener("click", handlers.onRoom);
   sound.addEventListener("click", handlers.onSound);
   lang.addEventListener("click", handlers.onLang);

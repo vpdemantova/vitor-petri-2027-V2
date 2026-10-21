@@ -109,7 +109,24 @@ export const LANE = {
   ahead: 2.2, behind: 1.2, fade: 0.9,
   /** VP-111: os de lado viram um pouco para o meio, como numa vitrine (radianos) */
   rx: 0.04, ry: -0.12,
+  /** VP-115: na troca, o que chega passa por cima (sobe) e o que sai passa por baixo (desce), como numa roda;
+      na tela, vezes a distância. Em pé, os lados já se afastam na vertical, então menos */
+  lift: 0.085, dip: 0.13, swingPortrait: 0.55,
 };
+
+/**
+ * VP-115 (21/out/2026, "as animações estão bem ruins ainda"): a troca entre o da vez e o próximo. Os dois
+ * passam pela mesma profundidade no meio do caminho, e ali um tem de passar à frente do outro; antes, eles
+ * se sobrepunham nesse instante e a troca aparecia como um estalo. Agora, no meio do caminho, o que chega
+ * está mais alto e o que sai mais baixo, sem se tocar: a troca acontece no vão entre os dois.
+ * Devolve o quanto o cartão sobe (ou desce), na tela, a u lugares do foco; zero fora da troca (|u| ≥ 1).
+ */
+export function laneSwing(u: number, portrait: boolean) {
+  const v = Math.abs(u);
+  if (v >= 1 || v === 0) return 0;
+  const s = Math.sin(Math.PI * v) * (portrait ? LANE.swingPortrait : 1);
+  return u > 0 ? LANE.lift * s : -LANE.dip * s;
+}
 
 /** O desenho de um lado: g, para o lado; gy, para cima (que achata depois do primeiro). v ≥ 0. */
 function laneSide(v: number, a: number) {

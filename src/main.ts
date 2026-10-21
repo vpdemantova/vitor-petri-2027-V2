@@ -19,7 +19,7 @@ import { PROJECTS } from "./content/projects";
 import { t, tx, getLang, onLang } from "./core/i18n";
 import { startRouter, onRoute, go, localize, current as currentRoute, type Route } from "./core/router";
 import { bindInput } from "./core/input";
-import { soundOn, setSound, onSound, chime, preview } from "./core/sound";
+import { soundOn, setSound, onSound, chime, preview, SOUND_ENABLED } from "./core/sound";
 import { wordmarkSVG } from "./ui/wordmark";
 import { h, prefersReducedMotion } from "./ui/dom";
 import { createPanels } from "./ui/panels";
@@ -96,6 +96,7 @@ const panels = createPanels(app, {
   onFilter: (f) => gallery?.setFilter(f),
   order: () => gallery?.order() ?? PROJECTS.map((_, i) => i),
   cardRect: (i) => gallery?.screenRect(i) ?? null,
+  cardQuad: (i) => gallery?.screenQuad(i) ?? null,
   onProjectShown: (i, instant) => gallery?.setHidden(i, instant),
 });
 
@@ -175,7 +176,7 @@ window.addEventListener("keydown", (e) => {
   else if (k === "p") go(panels.current() === "profile" ? "/" : "/profile");
   else if (k === "c" && !panels.current()) contact.toggle(!contact.isOpen());
   else if (k === "l") switchLang(getLang() === "en" ? "pt" : "en");
-  else if (k === "s") setSound(!soundOn());
+  else if (k === "s" && SOUND_ENABLED) setSound(!soundOn());
   else if (k === "r" && !panels.current()) toggleRoom();
   else if (!panels.current() && gallery) {
     if (["ArrowDown", "ArrowRight", "PageDown", "j"].includes(k)) { gallery.step(1); hint.done(); e.preventDefault(); }
@@ -268,7 +269,7 @@ async function boot() {
        VP-113: na sala, fica parada no meio de baixo e não some com o movimento (só o nome troca) */
     const docked = g.room();
     const free = introDone && (!panel || panel === "index") && !panels.busy() && !contact.isOpen();
-    const want = docked ? free : free && focus > 0.55 && g.anchor(anchor);
+    const want = docked ? free : free && focus > 0.85 && g.anchor(anchor);
     label.frame(dt, want, anchor.x, anchor.y, docked ? dockSpot : null);
     const f = g.filter();
     foot.setCount(slot, g.order().length, f === "all" ? null : f);
@@ -319,11 +320,13 @@ function finish(g: Gallery | null, particles?: { burst: () => Promise<void>; dis
     return;
   }
   const { tl, t0 } = r;
-  tl.fromTo(".nav a", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.08, ease: "power3.out" }, t0 + 0.7)
-    .fromTo(contact.pill, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, t0 + 0.85)
-    .fromTo(foot.el, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, t0 + 0.95)
-    .to({ v: 0 }, { v: 1, duration: 2.2, ease: "power2.out", onUpdate() { g.setReveal(this.targets()[0].v); } }, t0 + 0.35)
-    .call(done, [], t0 + 1.7);
+  /* VP-122 (21/out/2026): os cartões só chegam quando o logotipo grande já voou quase todo até o canto (antes, ele
+     passava por cima dos cartões que entravam); depois, o menu, o contato e o pé, um de cada vez */
+  tl.to({ v: 0 }, { v: 1, duration: 2.0, ease: "power2.out", onUpdate() { g.setReveal(this.targets()[0].v); } }, t0 + 0.8)
+    .fromTo(".nav a", { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.7, stagger: 0.08, ease: "power3.out" }, t0 + 0.95)
+    .fromTo(contact.pill, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, t0 + 1.1)
+    .fromTo(foot.el, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, t0 + 1.2)
+    .call(done, [], t0 + 1.9);
 }
 
 /* antes do 3D: o logotipo pequeno, o menu, o contato e o pé esperam a abertura */

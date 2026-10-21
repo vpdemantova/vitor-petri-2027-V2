@@ -25,6 +25,20 @@
      pelo outro, no sentido da fila;
    · o Índice só leva a galeria até a linha sob o mouse depois de o mouse
      andar (subindo por baixo de um mouse parado, ele fazia a galeria correr).
+   Desde 21/out/2026, à noite (VP-118 e VP-119):
+   · "o anterior e próximo devem ficar fixos embaixo do card de projeto":
+     a barra anterior / próximo é uma faixa fixa no pé da ficha, que não se
+     move nem some quando o conteúdo muda (antes, ficava no fim do texto e
+     mudava de lugar a cada projeto, ou nem aparecia nos de texto longo);
+   · o voo da imagem nasce exatamente em cima do cartão 3D, com a mesma
+     perspectiva (os cantos dele na tela e uma homografia: ui/quad.ts), e
+     volta para ele seguindo o cartão vivo; antes, nascia do retângulo em
+     volta do cartão e começava com um salto.
+   · VP-121: o Perfil abre de dentro para fora e fecha de fora para dentro
+     por um número só (o recorte é escrito aqui a cada quadro: o navegador
+     abrevia o clip-path e a interpolação de texto do GSAP pulava, e o
+     fechamento não encolhia); reaberto no meio do fechamento, o Índice e o
+     Perfil continuam de onde estão, sem voltar ao começo.
    Os três são diálogos de verdade (role="dialog", o Tab fica dentro, Esc
    fecha, o foco volta para onde estava). As animações são do GSAP.
 ════════════════════════════════════════════════════════════════════ */
@@ -36,6 +50,7 @@ import { localize, type PanelKind } from "../core/router";
 import { player } from "../core/sound";
 import { drawCover, loadCoverFonts } from "./musiccard";
 import { h, ARROW, CROSS, PLAY, PAUSE, trapFocus, prefersReducedMotion } from "./dom";
+import { quadTransform, lerpQuad, rectQuad, quadBox, type Quad } from "./quad";
 
 export type Rect = { x: number; y: number; w: number; h: number };
 type Filter = Category | "all";
@@ -49,6 +64,8 @@ interface Opts {
   order: () => number[];
   /** o retângulo do cartão na tela (para a ficha nascer dele) */
   cardRect: (index: number) => Rect | null;
+  /** VP-119: os quatro cantos do cartão na tela (o voo nasce dele, com a mesma perspectiva) */
+  cardQuad: (index: number) => Quad | null;
   /** a ficha aberta (o cartão dela some da galeria); instant: o cartão volta na hora (no fim do voo de volta) */
   onProjectShown: (index: number | null, instant?: boolean) => void;
 }
@@ -183,6 +200,24 @@ export function createPanels(root: HTMLElement, opts: Opts) {
   let shownProject: Project | null = null;
   let unPlayer: (() => void) | null = null;
 
+  /* VP-118: a barra anterior / próximo, fixa no pé da ficha: criada uma vez; a cada projeto, só os nomes trocam */
+  const stepEl = (dir: "prev" | "next") => {
+    const k = h("span", { class: "project-step-k" });
+    const nm = h("span", { class: "project-step-name" });
+    const a = h("a", { class: `project-step is-${dir}`, "data-link": "" }, k, nm);
+    return { a, k, nm };
+  };
+  const prevStep = stepEl("prev"), nextStep = stepEl("next");
+  const projectNav = h("nav", { class: "project-nav" }, prevStep.a, nextStep.a);
+  const fillNav = (prev: Project, next: Project) => {
+    for (const [st, q, dir] of [[prevStep, prev, "prev"], [nextStep, next, "next"]] as const) {
+      st.a.setAttribute("href", localize(`/project/${q.id}`));
+      st.k.innerHTML = dir === "prev" ? `<span aria-hidden="true">←</span> ${t("previous")}` : `${t("next")} <span aria-hidden="true">→</span>`;
+      st.nm.textContent = tx(q.name);
+    }
+    projectNav.setAttribute("aria-label", `${t("previous")} / ${t("next")}`);
+  };
+
   const neighbors = (p: Project) => {
     const order = opts.order();
     const i = PROJECTS.indexOf(p);
@@ -241,9 +276,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     }
     const { prev, next } = neighbors(p);
     /* o nome falado é o que se lê ("Anterior Laboratório"): as setas ficam escondidas do leitor */
-    const navLink = (q: Project, dir: "prev" | "next") => h("a", { class: `project-step is-${dir}`, href: localize(`/project/${q.id}`), "data-link": "" },
-      h("span", { class: "project-step-k", html: dir === "prev" ? `<span aria-hidden="true">←</span> ${t("previous")}` : `${t("next")} <span aria-hidden="true">→</span>` }),
-      h("span", { class: "project-step-name" }, tx(q.name)));
+    fillNav(prev, next);
     const desc = tp(p.description);
     const proc = tp(p.process);
     projectPanel.replaceChildren(
@@ -253,9 +286,9 @@ export function createPanels(root: HTMLElement, opts: Opts) {
         h("div", { class: "project-meta" }, meta, visit),
         p.audio ? playerEl(p) : null,
         desc.length ? h("div", { class: "project-desc" }, ...desc.map((d) => h("p", {}, d))) : null,
-        proc.length ? h("div", { class: "project-process" }, h("h3", {}, t("process")), ...proc.map((d) => h("p", {}, d))) : null,
-        h("nav", { class: "project-nav", "aria-label": `${t("previous")} / ${t("next")}` }, navLink(prev, "prev"), navLink(next, "next"))),
-      shots);
+        proc.length ? h("div", { class: "project-process" }, h("h3", {}, t("process")), ...proc.map((d) => h("p", {}, d))) : null),
+      shots,
+      projectNav);
   };
   onLang(() => { if (shownProject && current === "project") fillProject(shownProject); });
 
@@ -267,7 +300,8 @@ export function createPanels(root: HTMLElement, opts: Opts) {
   let current: PanelKind | null = null;
   let release: (() => void) | null = null;
   /* VP-112: quantos painéis ainda estão saindo (a etiqueta da galeria espera eles sumirem) */
-  let closing = 0;
+  /* (por painel: um painel reaberto no meio da saída deixa de contar) */
+  const closing = new Set<PanelKind>();
 
   /** VP-22: o recorte que faz a ficha nascer do retângulo do cartão */
   const clipFrom = (el: HTMLElement, r: Rect) => {
@@ -299,11 +333,19 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     const y = b.top >= c.top - 1 && b.top < innerHeight ? b.top : c.top;
     return { x: b.width ? b.left : c.left, y, w, h: w / aspectOf(p) };
   };
-  /** o voo: a imagem vai do retângulo a ao b só com transform (sem mexer no layout a cada quadro) */
-  const fly = (el: HTMLElement, a: Rect, b: Rect, duration: number, onComplete: () => void) => {
-    Object.assign(el.style, { left: `${b.x}px`, top: `${b.y}px`, width: `${b.w}px`, height: `${b.h}px` });
-    gsap.fromTo(el, { x: a.x - b.x, y: a.y - b.y, scaleX: a.w / b.w, scaleY: a.h / b.h, transformOrigin: "0 0" },
-      { x: 0, y: 0, scaleX: 1, scaleY: 1, duration, ease: "expo.inOut", onComplete });
+  /** VP-119: o voo: a imagem (de w × h) vai do quadrilátero a ao b, cada canto no seu caminho, por um matrix3d a cada
+      quadro; a e b podem ser funções (o cartão vivo, que ainda se move); o caminho é dobrado (expo.inOut) */
+  const fly = (el: HTMLElement, a: Quad | (() => Quad | null), b: Quad | (() => Quad | null), w: number, h: number, duration: number, onComplete: () => void) => {
+    Object.assign(el.style, { left: "0px", top: "0px", width: `${w}px`, height: `${h}px`, transformOrigin: "0 0" });
+    let qa = typeof a === "function" ? a() : a, qb = typeof b === "function" ? b() : b;
+    const st = { t: 0 };
+    const paint = () => {
+      if (typeof a === "function") qa = a() ?? qa;
+      if (typeof b === "function") qb = b() ?? qb;
+      if (qa && qb) el.style.transform = quadTransform(w, h, lerpQuad(qa, qb, st.t));
+    };
+    paint();
+    gsap.to(st, { t: 1, duration, ease: "expo.inOut", onUpdate: paint, onComplete });
   };
   const clearFlights = () => { gsap.killTweensOf(flyLayer.children); flyLayer.replaceChildren(); };
 
@@ -317,75 +359,98 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     return d <= n / 2 ? 1 : -1;
   };
 
-  const animIn = (kind: PanelKind, el: HTMLElement, from?: Rect | null, delay = 0) => {
+  /* VP-121: o recorte do Perfil, por um número (1 = aberto inteiro; 0 = um ponto no meio, com o canto bem redondo) */
+  const prof = { k: 0 };
+  const paintProfile = () => {
+    const i = 1 - prof.k;
+    profilePanel.style.clipPath = `inset(${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% round ${(40 * i).toFixed(2)}px)`;
+  };
+
+  const animIn = (kind: PanelKind, el: HTMLElement, fromQuad?: Quad | null, delay = 0, resume = false) => {
     const reduce = prefersReducedMotion();
     gsap.killTweensOf(el);
     if (reduce) { gsap.set(el, { clearProps: "all" }); return; }
     if (kind === "index") {
-      gsap.fromTo(el, { yPercent: 100 }, { yPercent: 0, duration: 0.9, delay, ease: "expo.out" });
+      /* VP-121: reaberto no meio da saída, sobe de onde está */
+      if (resume) gsap.to(el, { yPercent: 0, duration: 0.7, ease: "expo.out" });
+      else gsap.fromTo(el, { yPercent: 100 }, { yPercent: 0, duration: 0.9, delay, ease: "expo.out" });
       gsap.fromTo(el.querySelectorAll(".filters label, .index-search, .index-row:not([hidden])"), { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, stagger: 0.025, delay: delay + 0.12, ease: "power3.out" });
     } else if (kind === "profile") {
-      gsap.fromTo(el, { clipPath: "inset(48% 48% 48% 48% round 40px)", opacity: 1 }, { clipPath: "inset(0% 0% 0% 0% round 0px)", duration: 1.0, delay, ease: "expo.inOut", clearProps: "clipPath" });
+      gsap.killTweensOf(prof);
+      if (!resume) prof.k = 0;
+      gsap.set(el, { opacity: 1 });
+      paintProfile();
+      gsap.to(prof, { k: 1, duration: resume ? 0.7 : 1.0, delay: resume ? 0 : delay, ease: "expo.inOut", onUpdate: paintProfile, onComplete: () => { el.style.clipPath = ""; } });
       gsap.fromTo(el.querySelectorAll(".profile-text p, .profile-art figure, .profile-aside"), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.07, delay: delay + 0.45, ease: "power3.out" });
-    } else if (from && shownProject) {
+    } else if (fromQuad && shownProject) {
       /* VP-112: do cartão: o vidro cresce do retângulo dele e a própria imagem do cartão voa até o lugar dela na
          ficha (antes, crescia uma caixa branca vazia e a imagem só aparecia depois) */
       const p = shownProject;
       const shots = el.querySelector<HTMLElement>(".project-shots");
+      const from = quadBox(fromQuad);
       gsap.fromTo(el, { clipPath: clipFrom(el, from) }, { clipPath: clipFull(el), duration: 0.9, ease: "expo.inOut", clearProps: "clipPath" });
-      gsap.fromTo(el.querySelectorAll(".project-info > *"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.05, delay: 0.45, ease: "power3.out" });
+      gsap.fromTo(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.05, delay: 0.45, ease: "power3.out", clearProps: "transform" });
       const to = shotRect(p);
       if (to && shots) {
         gsap.set(shots, { opacity: 0 });
         const c = flyClone(p);
-        fly(c, from, to, 0.9, () => { gsap.set(shots, { opacity: 1 }); gsap.to(c, { opacity: 0, duration: 0.2, onComplete: () => c.remove() }); });
+        fly(c, fromQuad, rectQuad(to), to.w, to.h, 0.9, () => { gsap.set(shots, { opacity: 1 }); gsap.to(c, { opacity: 0, duration: 0.15, onComplete: () => c.remove() }); });
       } else if (shots) gsap.fromTo(shots, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.9, delay: 0.35, ease: "expo.out" });
     } else {
       gsap.fromTo(el, { opacity: 0, scale: 0.94, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.85, delay, ease: "expo.out" });
-      gsap.fromTo(el.querySelectorAll(".project-info > *"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.06, delay: delay + 0.2, ease: "power3.out" });
+      gsap.fromTo(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.06, delay: delay + 0.2, ease: "power3.out", clearProps: "transform" });
       gsap.fromTo(el.querySelector(".project-shots"), { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.9, delay: delay + 0.15, ease: "expo.out" });
     }
   };
   /** a saída; fast: na troca de um painel por outro, o que sai sai mais depressa (o outro entra depois) */
-  const animOut = (kind: PanelKind, el: HTMLElement, done: () => void, to?: Rect | null, fast = false) => {
+  const animOut = (kind: PanelKind, el: HTMLElement, done: () => void, toQuad?: (() => Quad | null) | null, fast = false) => {
     if (prefersReducedMotion()) { done(); return; }
     gsap.killTweensOf(el);
     const q = fast ? 0.65 : 1;
-    if (kind === "index") gsap.to(el, { yPercent: 100, duration: 0.55 * q, ease: "power3.in", onComplete: done });
-    else if (kind === "profile") gsap.to(el, { clipPath: "inset(48% 48% 48% 48% round 40px)", opacity: fast ? 0 : 1, duration: 0.55 * q, ease: "power3.in", onComplete: done });
-    else if (to && shownProject) {
+    /* VP-121: a saída começa a andar na hora (power3.in ficava quase parado nos primeiros 0,2 s) */
+    if (kind === "index") gsap.to(el, { yPercent: 100, duration: 0.46 * q, ease: "power2.in", onComplete: done });
+    else if (kind === "profile") {
+      gsap.killTweensOf(prof);
+      paintProfile();
+      if (fast) gsap.to(el, { opacity: 0, duration: 0.3, ease: "power2.in" });
+      gsap.to(prof, { k: 0, duration: 0.5 * q, ease: "power2.in", onUpdate: paintProfile, onComplete: done });
+    }
+    else if (toQuad && shownProject) {
       /* VP-112: de volta ao cartão: o texto some, o vidro encolhe até o cartão, e a imagem da ficha voa de volta
          ao lugar dele; o cartão acende ali mesmo quando ela chega (antes, uma caixa vazia encolhia e o cartão
          aparecia por baixo, ao mesmo tempo) */
       const p = shownProject;
       const shots = el.querySelector<HTMLElement>(".project-shots");
       const fr = shotRect(p);
-      gsap.to(el.querySelectorAll(".project-info > *"), { opacity: 0, duration: 0.18 });
-      gsap.fromTo(el, { clipPath: clipFull(el) }, { clipPath: clipFrom(el, to), duration: 0.7, ease: "expo.inOut" });
-      if (fr && shots) {
+      const q0 = toQuad();
+      gsap.to(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, duration: 0.16 });
+      if (q0) gsap.fromTo(el, { clipPath: clipFull(el) }, { clipPath: clipFrom(el, quadBox(q0)), duration: 0.7, ease: "expo.inOut" });
+      if (fr && shots && q0) {
         const c = flyClone(p);
         gsap.set(shots, { opacity: 0 });
-        gsap.to(el, { opacity: 0, duration: 0.3, delay: 0.38 });
-        fly(c, fr, to, 0.7, () => { done(); requestAnimationFrame(() => c.remove()); });
+        /* o vidro se desfaz logo (antes, ficava um instante como uma caixa branca vazia encolhendo) */
+        gsap.to(el, { opacity: 0, duration: 0.32, delay: 0.06, ease: "power2.out" });
+        fly(c, rectQuad(fr), toQuad, fr.w, fr.h, 0.7, () => { done(); requestAnimationFrame(() => c.remove()); });
       } else gsap.to(el, { opacity: 0, duration: 0.3, delay: 0.38, onComplete: done });
     } else gsap.to(el, { opacity: 0, scale: 0.96, y: 20, duration: 0.4 * q, ease: "power2.in", onComplete: done });
   };
 
-  const hide = (kind: PanelKind, to?: Rect | null, fast = false) => {
+  const hide = (kind: PanelKind, to?: (() => Quad | null) | null, fast = false) => {
     const el = panels[kind];
-    closing++;
+    closing.add(kind);
     if (kind === "project") {
       player.release(); unPlayer?.(); unPlayer = null;
       /* com o voo de volta, o cartão acende na hora em que a imagem chega; sem ele, já (devagar) */
       if (!to) opts.onProjectShown(null);
     }
     animOut(kind, el, () => {
-      closing = Math.max(0, closing - 1);
+      closing.delete(kind);
       if (kind === "project" && to) opts.onProjectShown(null, true);
       /* o painel pode ter sido aberto de novo enquanto saía: aí ele fica */
       if (current === kind) return;
       el.classList.remove("is-open");
       gsap.set([el, ...el.querySelectorAll(".project-info > *, .project-shots")], { clearProps: "all" });
+      if (kind === "profile") prof.k = 0;
     }, to, fast);
   };
 
@@ -400,6 +465,8 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     swapTo = p;
     const outEls = projectPanel.querySelectorAll(".project-info > *, .project-shots");
     gsap.killTweensOf(outEls);
+    /* VP-118: a barra não sai: só os nomes dela trocam, num esmaecer rápido */
+    gsap.to(projectNav.querySelectorAll(".project-step-name"), { opacity: 0, duration: 0.16, ease: "power2.in" });
     gsap.to(outEls, {
       opacity: 0, x: -28 * swapDir, duration: 0.2, stagger: 0.012, ease: "power2.in",
       onComplete: () => {
@@ -408,6 +475,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
         fillProject(q);
         const inEls = projectPanel.querySelectorAll(".project-info > *, .project-shots");
         gsap.fromTo(inEls, { opacity: 0, x: 28 * swapDir }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.03, ease: "power3.out", clearProps: "transform,opacity" });
+        gsap.fromTo(projectNav.querySelectorAll(".project-step-name"), { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" });
         /* o foco fica no mesmo lado (quem anda pelo teclado continua andando) */
         projectPanel.querySelector<HTMLElement>(swapDir > 0 ? ".project-step.is-next" : ".project-step.is-prev")?.focus({ preventScroll: true });
       },
@@ -425,11 +493,11 @@ export function createPanels(root: HTMLElement, opts: Opts) {
   return {
     current: () => current,
     /** VP-112: algum painel ainda está saindo */
-    busy: () => closing > 0,
+    busy: () => closing.size > 0,
     /** o projeto da ficha aberta */
     shown: () => (current === "project" ? shownProject : null),
     open(kind: PanelKind, projectId?: string, fromCard = false) {
-      let from: Rect | null = null;
+      let from: Quad | null = null;
       if (kind === "project") {
         const p = PROJECTS.find((q) => q.id === projectId);
         if (!p) return;
@@ -443,7 +511,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
           return;
         }
         clearFlights();
-        if (fromCard) from = opts.cardRect(i);
+        if (fromCard) from = opts.cardQuad(i);
         fillProject(p);
         opts.onProjectShown(i);
       }
@@ -452,6 +520,9 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       if (current && current !== kind) { release?.(); release = null; hide(current, null, true); delay = 0.2; }
       const el = panels[kind];
       const was = current === kind;
+      /* VP-121: ainda saindo (reaberto no meio do fechamento): continua de onde está */
+      const resume = !was && el.classList.contains("is-open") && (kind === "index" || kind === "profile");
+      closing.delete(kind);
       current = kind;
       document.documentElement.classList.add("has-panel");
       document.documentElement.dataset.panel = kind;
@@ -459,7 +530,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       if (kind === "index" && !was) hoverArmed = false;
       if (!was) {
         el.classList.add("is-front");
-        animIn(kind, el, from, delay);
+        animIn(kind, el, from, delay, resume);
         window.setTimeout(() => el.classList.remove("is-front"), (delay + 1.1) * 1000);
       }
       release?.();
@@ -469,7 +540,8 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     close() {
       if (!current) return;
       release?.(); release = null;
-      const to = current === "project" && shownProject ? opts.cardRect(PROJECTS.indexOf(shownProject)) : null;
+      const shownIndex = shownProject ? PROJECTS.indexOf(shownProject) : -1;
+      const to = current === "project" && shownProject && opts.cardQuad(shownIndex) ? () => opts.cardQuad(shownIndex) : null;
       const kind = current;
       current = null;
       hide(kind, to);

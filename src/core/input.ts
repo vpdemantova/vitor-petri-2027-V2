@@ -11,17 +11,18 @@
    gesto, na direção em que você rolou, e não volta; o arrasto segue um
    eixo só (o que andou mais no começo) e, ao soltar, vai até o próximo
    cartão nessa direção. As contas estão em core/gesture.ts, com testes.
+   Desde 21/out/2026 (VP-116, "deixe a galeria rolar mais depois que o
+   mouse larga, diminua o freio"), ao soltar com a mão ainda andando, a
+   fila continua deslizando com o embalo (mais longe e com um freio leve),
+   até o cartão inteiro em que o embalo a leva.
 ════════════════════════════════════════════════════════════════════ */
 import type { Gallery } from "../gl/gallery";
-import { createWheelStepper, releaseTarget, dragAxis } from "./gesture";
+import { createWheelStepper, releaseTarget, dragAxis, releaseVelocity, coast } from "./gesture";
 
 export const DRAG = {
   /** pixels de arrasto por cartão */
   touchPx: 210,
   mousePx: 320,
-  /** o embalo ao soltar: quanto da velocidade final continua, e o teto */
-  flick: 6.5,
-  flickMax: 1.6,
   /** abaixo disso (em pixels), é um toque, não um arrasto */
   tap: 6,
 };
@@ -52,13 +53,16 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
     o.onMove();
   }, { passive: true });
 
-  let dragging = false, lastX = 0, lastY = 0, lastT = 0, flick = 0, downX = 0, downY = 0, moved = 0, start = 0;
+  let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0, moved = 0, start = 0, travel = 0;
+  /* VP-116: as últimas posições da mão (t em ms, x em cartões), para o embalo ao soltar */
+  let samples: { t: number; x: number }[] = [];
   let axis: "x" | "y" | null = null;
   canvas.addEventListener("pointerdown", (e) => {
     if (o.blocked() || o.consumes?.()) return;
     dragging = true; moved = 0; axis = null;
-    lastX = downX = e.clientX; lastY = downY = e.clientY; lastT = performance.now(); flick = 0;
-    start = g.target();
+    lastX = downX = e.clientX; lastY = downY = e.clientY;
+    start = g.target(); travel = 0;
+    samples = [{ t: performance.now(), x: 0 }];
     canvas.setPointerCapture(e.pointerId);
     o.onDrag(true);
   });
@@ -71,14 +75,16 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
       axis = dragAxis(e.clientX - downX, e.clientY - downY);
       lastX = downX; lastY = downY;
     }
-    const now = performance.now();
     const px = e.pointerType === "touch" ? DRAG.touchPx : DRAG.mousePx;
     /* para cima ou para a esquerda: o próximo (o cartão acompanha o dedo) */
     const along = axis === "y" ? e.clientY - lastY : e.clientX - lastX;
     const step = (-along / px) * gain;
     g.nudge(step);
-    flick = (step / Math.max(1, now - lastT)) * 16;
-    lastY = e.clientY; lastX = e.clientX; lastT = now;
+    travel += step;
+    const now = performance.now();
+    samples.push({ t: now, x: travel });
+    if (samples.length > 24) samples.shift();
+    lastY = e.clientY; lastX = e.clientX;
     o.onMove();
   });
   const end = (e: PointerEvent) => {
@@ -90,10 +96,11 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
       if (hit !== null) o.onTap(hit);
       return;
     }
-    /* ao soltar: o próximo cartão inteiro na direção do arrasto (com o embalo, se a mão ainda andava) */
-    const still = performance.now() - lastT >= 90;
-    const extra = !still && Math.abs(flick) > 0.02 ? Math.max(-DRAG.flickMax, Math.min(DRAG.flickMax, flick * DRAG.flick)) : 0;
-    g.settle(releaseTarget(start, g.target(), extra));
+    /* ao soltar: com a mão ainda andando, a fila desliza com o embalo (VP-116) até o cartão inteiro em que ele a leva;
+       parada, vai ao próximo cartão inteiro na direção do arrasto */
+    const extra = coast(releaseVelocity(samples, performance.now()));
+    const to = releaseTarget(start, g.target(), extra);
+    if (extra) g.glide(to); else g.settle(to);
   };
   canvas.addEventListener("pointerup", end);
   canvas.addEventListener("pointercancel", end);

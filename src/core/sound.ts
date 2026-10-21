@@ -13,10 +13,17 @@
      sai; na ficha, o tocador toca de verdade, com ou sem o som ligado
      (é um clique).
    Um som só por vez: quem toca a gravação na ficha cala a prévia.
+
+   VP-114 (21/out/2026, "remova o som por enquanto"): o som do site está
+   desligado por esta chave. Com ela em false, o botão Som e a tecla S somem,
+   as notas e a prévia não tocam, e quem tinha deixado o som ligado (guardado
+   no navegador) também não ouve nada. O tocador da gravação na ficha
+   continua (ele só toca com um clique). Para voltar: true.
 ════════════════════════════════════════════════════════════════════ */
+export const SOUND_ENABLED = false;
 const KEY = "vp-som";
 let on = false;
-try { on = localStorage.getItem(KEY) === "1"; } catch { /* sem armazenamento */ }
+try { on = SOUND_ENABLED && localStorage.getItem(KEY) === "1"; } catch { /* sem armazenamento */ }
 const subs = new Set<(on: boolean) => void>();
 
 let ctx: AudioContext | null = null;
@@ -37,6 +44,7 @@ const audioCtx = () => {
 export const soundOn = () => on;
 export function onSound(fn: (on: boolean) => void) { subs.add(fn); fn(on); }
 export function setSound(v: boolean) {
+  if (!SOUND_ENABLED) return;
   on = v;
   try { localStorage.setItem(KEY, v ? "1" : "0"); } catch { /* sem armazenamento */ }
   if (v) { audioCtx(); chime(7, 0.5); } else fadePreview(0);

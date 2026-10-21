@@ -1,6 +1,6 @@
 /* VP-108 (19/out/2026): a roda e o arrasto que decidem, conferidos (core/gesture.ts). */
 import { describe, expect, it } from "vitest";
-import { createWheelStepper, releaseTarget, dragAxis, WHEEL } from "./gesture";
+import { createWheelStepper, releaseTarget, dragAxis, releaseVelocity, coast, GLIDE, WHEEL } from "./gesture";
 
 /** dá vários deltas e soma os passos */
 const run = (events: [delta: number, t: number][]) => {
@@ -33,6 +33,29 @@ describe("a roda", () => {
   it("nada de roda, nada de passo", () => {
     expect(run([[0, 0]])).toBe(0);
     expect(WHEEL.first).toBeLessThan(100);
+  });
+});
+
+describe("o embalo depois de soltar (VP-116)", () => {
+  const drag = (pxPerS: number, pxPerCard: number, ms = 300) =>
+    Array.from({ length: ms / 16 + 1 }, (_, i) => ({ t: i * 16, x: (i * 16 * pxPerS) / 1000 / pxPerCard }));
+  it("mede a velocidade da mão nos últimos ~100 ms", () => {
+    const s = drag(640, 320);
+    expect(releaseVelocity(s, s[s.length - 1].t)).toBeCloseTo(2, 1);
+  });
+  it("a mão parada antes de soltar não joga a fila", () => {
+    const s = drag(640, 320);
+    expect(releaseVelocity(s, s[s.length - 1].t + 200)).toBe(0);
+  });
+  it("um arremesso de mouse anda mais de um cartão; um de dedo, vários", () => {
+    expect(Math.abs(coast(1900 / 320))).toBeGreaterThan(2);
+    expect(Math.abs(coast(2600 / 210))).toBeGreaterThan(5);
+    expect(releaseTarget(3, 3.4, coast(1900 / 320))).toBeGreaterThanOrEqual(6);
+  });
+  it("devagar não desliza; e há um teto", () => {
+    expect(coast(0.3)).toBe(0);
+    expect(coast(500)).toBe(GLIDE.max);
+    expect(coast(-500)).toBe(-GLIDE.max);
   });
 });
 

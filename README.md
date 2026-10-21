@@ -39,15 +39,15 @@ No fim do endereço:
 | Logotipo | `VITOR PETRI` desenhado letra por letra no estilo do WHIZBIGG (`src/ui/wordmark.ts`) |
 | Preloader | As coordenadas de Campinas, que "digitam", e o logotipo grande. Ele se forma de partículas enquanto as imagens chegam (sem placa de vídeo, se enche de baixo para cima) e depois voa até o canto. Vem pronto no HTML, para pintar antes do JavaScript |
 | Home / Gallery | Os 22 projetos como cartões em profundidade, no brilho lavanda (nos cinco sites com laço gravado, o cartão da vez vira vídeo quando a fila para); a etiqueta "Nome ↗ · VIEW PROJECT" presa ao canto do cartão da vez; o botão "Contact"; no pé, o contador, a Sala, o Som e o idioma |
-| Project | O vidro claro com nome, ROLE / TYPE / STACK / YEAR, VISIT WEBSITE, a descrição, anterior e próximo, e as imagens rolando. Nasce do retângulo do cartão. Nas obras de música, o tocador e a capa desenhada |
+| Project | O vidro claro com nome, ROLE / TYPE / STACK / YEAR, VISIT WEBSITE, a descrição e as imagens rolando, e embaixo uma barra fixa com o anterior e o próximo (VP-118). Nasce do retângulo do cartão. Nas obras de música, o tocador e a capa desenhada |
 | Index | O painel branco com os filtros (All, Websites, Design, Experiments, Music), que valem também para a galeria, a busca e a tabela. A linha sob o mouse leva a galeria até aquele projeto |
 | Profile | O texto em serifa à esquerda, a composição com três peças dele (o retrato entra no meio, quando houver) e as duas linhas embaixo à direita |
-| Contact | A pílula vira o cartão "Get in touch!", com o e-mail, o WhatsApp e as redes |
+| Contact | A pílula vira o cartão "Get in touch!" (crescendo do formato dela), com o e-mail, o WhatsApp, as redes e o × para fechar (VP-120) |
 
 Além das telas:
 - o português, no botão PT/EN, com a troca animada;
 - a sala (R): a fila vira um corredor;
-- o som (S): uma nota por cartão e a prévia da gravação;
+- o som: uma nota por cartão e a prévia da gravação (desligado por ora, VP-114: `SOUND_ENABLED` em `src/core/sound.ts`);
 - o cursor próprio;
 - a dica da primeira visita;
 - os atalhos (?);
@@ -57,7 +57,7 @@ Endereços: `/index`, `/profile` e `/project/<id>`, e os mesmos em português co
 
 Teclado e acessibilidade:
 - as setas (ou PageUp e PageDown) passam de projeto, e Enter abre o da vez; na ficha, ← e → passam de ficha;
-- I, P, C, R, S, L e ? abrem o índice, o perfil, o contato, a sala, o som, a língua e os atalhos;
+- I, P, C, R, L e ? abrem o índice, o perfil, o contato, a sala, a língua e os atalhos (e S, o som, quando ele voltar);
 - os painéis são diálogos: o Tab fica dentro, Esc fecha e o foco volta para onde estava;
 - o primeiro Tab mostra "pular para o índice";
 - um leitor de tela ouve o nome do projeto da vez;
@@ -103,7 +103,7 @@ Diferenças em relação às telas:
 - **WebGPU, com WebGL2 de reserva.** O `WebGPURenderer` do three.js escolhe o motor. Os materiais são escritos em **TSL** (a linguagem de nós do three), que vira WGSL no WebGPU e GLSL no WebGL2: o mesmo código nos dois.
 - **A galeria** (`src/gl/gallery.ts`; as contas puras em `src/gl/math.ts`, com testes):
   - **a fila:** os cartões ao longo do eixo da câmera, sem fim. O da vez fica no foco; os de trás ficam menores, mais escuros e um pouco desfocados (um mipmap mais alto). Desde 20/out (VP-109), numa direção só, e desde 21/out (VP-111) passando pelo foco: os próximos em cima à direita e o anterior embaixo à esquerda, os dois atrás do da vez (`laneOffset`, `laneDepth` e `laneVisibility` em `src/gl/math.ts`); a câmera anda junto com o movimento e o arranque é suave; o desenho de antes, com os cantos alternados, continua em `?alternado`;
-  - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto. A roda e o arrasto decidem (VP-108, `src/core/gesture.ts`): cada gesto anda pelo menos um cartão inteiro na direção dele, e nunca volta sozinho;
+  - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto. A roda e o arrasto decidem (VP-108, `src/core/gesture.ts`): cada gesto anda pelo menos um cartão inteiro na direção dele, e nunca volta sozinho; o arrasto, ao soltar, desliza com o embalo da mão (VP-116: `GLIDE` em `src/core/gesture.ts`); na troca, o que chega passa por cima e o que sai por baixo, como numa roda (VP-115);
   - **a velocidade:** entra nos shaders. O cartão **dobra** e as cores **se separam** nas bordas; ao assentar, um **anel** sai do centro da imagem;
   - **os filtros:** a fila se refaz só com a categoria;
   - **a sala:** a mesma fila, nas paredes de um corredor (no celular, o da vez sai da parede para o meio);
@@ -117,12 +117,12 @@ Diferenças em relação às telas:
 - **A primeira pintura** (VP-99): a abertura vem pronta no HTML e o JavaScript não a mexe de lugar (mexer a fazia pintar de novo, e a "maior pintura" ia para depois do JavaScript); os materiais compilam antes do primeiro quadro (`compileAsync`).
 - **Resolução adaptativa:** se o quadro passa de 20 ms por um segundo, a densidade de pixels baixa um degrau; com folga, sobe de volta. O laço para quando a aba some.
 - **O 3D em pedaço separado:** a interface aparece na hora, e o three.js (uns 241 KB compactados) chega em seguida.
-- **O som** (`src/core/sound.ts`): Web Audio, sem arquivos, desligado por padrão.
+- **O som** (`src/core/sound.ts`): Web Audio, sem arquivos, desligado por padrão; desde 21/out, desligado por inteiro (`SOUND_ENABLED = false`, VP-114).
 - **As animações da interface** são do GSAP:
   - o voo do logotipo (FLIP);
   - o Índice que sobe;
   - o Perfil que se abre de dentro para fora;
-  - a ficha que nasce do cartão;
+  - a ficha que nasce do cartão (a imagem sai de cima do cartão 3D com a mesma perspectiva: uma homografia em `src/ui/quad.ts`, VP-119);
   - a pílula do contato que vira cartão;
   - o nome da etiqueta, que troca deslizando.
 
@@ -179,7 +179,7 @@ src/main.ts         liga as peças
 src/core/           router (os endereços), paths (o /pt, também usado pelo build), i18n (as línguas), input (roda, dedo, teclado), gesture (as contas da roda e do arrasto), sound
 src/content/        parse (o leitor do Markdown, também usado pelo build), projects
 src/gl/             stage, backdrop, gallery, post, particles, math, hour
-src/ui/             wordmark, preloader, intro, label, contact, panels, foot, cursor, shortcuts, compare, langswitch, musiccard, dom
+src/ui/             wordmark, preloader, intro, label, contact, panels, quad (o voo da ficha), foot, cursor, shortcuts, compare, langswitch, musiccard, dom
 src/data/           site (o perfil e o contato), image-sizes.json (gerado)
 src/styles/         app.css
 vite.config.ts      o build e as páginas de cada projeto

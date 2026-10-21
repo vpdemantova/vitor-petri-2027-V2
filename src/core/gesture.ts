@@ -67,5 +67,40 @@ export function releaseTarget(start: number, now: number, flick = 0, commit = DR
   return base + Math.sign(moved) * Math.max(1, Math.round(Math.abs(moved)));
 }
 
+/**
+ * VP-116 (21/out/2026, "deixe a galeria rolar mais depois que o mouse larga, diminua o freio"): o embalo.
+ * Antes, o arrasto ao soltar ganhava no máximo uma fração de cartão (a conta usava só o último movimento,
+ * por quadro). Agora a velocidade é medida nos últimos ~100 ms da mão, e a fila desliza a distância que
+ * esse embalo leva com um freio leve (GLIDE.omega: quanto menor, mais longe), até o cartão inteiro mais perto.
+ */
+export const GLIDE = {
+  /** o freio do deslize (1/s): a distância é a velocidade ÷ omega */
+  omega: 2.2,
+  /** o quanto de histórico mede a velocidade (ms), e quanto tempo parado zera o embalo (ms) */
+  window: 100, stale: 110,
+  /** abaixo disso (cartões/s), não desliza: só encaixa */
+  min: 0.6,
+  /** no máximo, quantos cartões um arremesso anda */
+  max: 12,
+};
+
+/** A velocidade da mão ao soltar, em cartões por segundo, a partir das amostras (t em ms, x em cartões). */
+export function releaseVelocity(samples: { t: number; x: number }[], now: number, g = GLIDE): number {
+  if (samples.length < 2) return 0;
+  const last = samples[samples.length - 1];
+  if (now - last.t > g.stale) return 0;
+  let i = samples.length - 1;
+  while (i > 0 && last.t - samples[i - 1].t <= g.window) i--;
+  const first = samples[i === samples.length - 1 ? i - 1 : i];
+  const dt = (last.t - first.t) / 1000;
+  return dt > 0 ? (last.x - first.x) / dt : 0;
+}
+
+/** Quantos cartões o embalo ainda anda depois de soltar (com sinal), com o freio leve do GLIDE. */
+export function coast(v: number, g = GLIDE): number {
+  if (Math.abs(v) < g.min) return 0;
+  return Math.max(-g.max, Math.min(g.max, v / g.omega));
+}
+
 /** O eixo do arrasto, escolhido no começo do gesto pelo lado que andou mais. */
 export const dragAxis = (dx: number, dy: number): "x" | "y" => (Math.abs(dx) > Math.abs(dy) ? "x" : "y");

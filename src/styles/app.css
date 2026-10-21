@@ -106,7 +106,10 @@ a { color: inherit; }
   overflow: hidden;
 }
 .label-name .arrow { width: calc(22 * var(--u)); height: calc(22 * var(--u)); }
-.label-name-text { display: inline-block; }
+.label-name-text { display: inline-block; white-space: nowrap; overflow: visible; }
+/* VP-117: o nome que sai fica por cima do que entra, no mesmo lugar */
+.label-name { position: relative; }
+.label-name-ghost { position: absolute; left: 0; top: 50%; translate: 0 -50%; white-space: nowrap; pointer-events: none; }
 .label-cta {
   height: calc(38 * var(--u)); padding: 0 calc(18 * var(--u)); border: 0; border-radius: 999px;
   background: var(--ink); color: var(--paper);
@@ -125,20 +128,25 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
   cursor: pointer; transition: transform 0.3s var(--ease);
 }
 .contact-pill:hover { transform: translateY(-2px); }
+/* VP-120: na metamorfose, a pílula fica por cima do cartão (que cresce por baixo dela, da mesma cor) */
+.contact-pill.is-morph { z-index: 23; }
 .contact-card {
-  position: fixed; left: calc(53 * var(--u)); bottom: calc(29 * var(--u)); z-index: 22;
-  width: calc(287 * var(--u)); padding: calc(36 * var(--u)) calc(34 * var(--u)) calc(34 * var(--u));
-  border-radius: calc(37 * var(--u)); background: var(--paper); color: var(--ink);
+  /* VP-120: no mesmo canto da pílula (a pílula vira o cartão), maior e com mais respiro */
+  position: fixed; left: calc(30 * var(--u)); bottom: calc(32 * var(--u)); z-index: 22;
+  width: calc(287 * var(--u)); padding: calc(52 * var(--u)) calc(52 * var(--u)) calc(48 * var(--u));
+  border-radius: calc(46 * var(--u)); background: var(--paper); color: var(--ink);
   font-family: var(--f-sans); transform-origin: left bottom;
   visibility: hidden;
 }
 .contact-card.is-open { visibility: visible; }
 .contact-card p { margin: 0; }
-.contact-kick { font-size: calc(21 * var(--u)); color: #2b2b2b; }
-.contact-mail { display: inline-block; margin-top: calc(10 * var(--u)); font-size: calc(27 * var(--u)); text-decoration: none; }
+.contact-kick { font-size: calc(23 * var(--u)); color: #2b2b2b; padding-right: calc(56 * var(--u)); }
+.contact-mail { display: inline-block; margin-top: calc(14 * var(--u)); font-size: calc(27 * var(--u)); text-decoration: none; }
+/* VP-120: o fechar, no canto de cima à direita */
+.contact-close { top: calc(26 * var(--u)); right: calc(26 * var(--u)); width: calc(46 * var(--u)); height: calc(46 * var(--u)); }
 .contact-mail:hover { text-decoration: underline; }
-.contact-socials-k { margin-top: calc(48 * var(--u)) !important; font-size: calc(21 * var(--u)); color: #2b2b2b; }
-.contact-socials { list-style: none; margin: calc(6 * var(--u)) 0 0; padding: 0; font-size: calc(25 * var(--u)); line-height: 1.22; }
+.contact-socials-k { margin-top: calc(56 * var(--u)) !important; font-size: calc(23 * var(--u)); color: #2b2b2b; }
+.contact-socials { list-style: none; margin: calc(12 * var(--u)) 0 0; padding: 0; font-size: calc(27 * var(--u)); line-height: 1.5; }
 .contact-socials a { text-decoration: none; }
 .contact-socials a:hover { text-decoration: underline; }
 
@@ -213,6 +221,8 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
 .project-panel {
   left: calc(50 * var(--u)); right: calc(43 * var(--u)); top: calc(147 * var(--u)); bottom: calc(52 * var(--u));
   display: grid; grid-template-columns: calc(470 * var(--u)) 1fr; column-gap: calc(35 * var(--u));
+  /* VP-118: o conteúdo rola em cima; a barra anterior / próximo fica fixa embaixo */
+  grid-template-rows: minmax(0, 1fr) auto;
   padding: 0 calc(110 * var(--u)) 0 calc(43 * var(--u));
   border-radius: calc(87 * var(--u)); overflow: hidden;
   background: var(--glass);
@@ -220,7 +230,7 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 .project-panel .close { top: calc(26 * var(--u)); right: calc(44 * var(--u)); width: calc(44 * var(--u)); height: calc(44 * var(--u)); }
-.project-info { padding-top: calc(36 * var(--u)); overflow: auto; scrollbar-width: none; }
+.project-info { padding-top: calc(36 * var(--u)); padding-bottom: calc(28 * var(--u)); overflow: auto; scrollbar-width: none; }
 .project-title { margin: 0; font: 400 calc(45 * var(--u)) / 1.05 var(--f-sans); text-transform: uppercase; letter-spacing: 0.005em; }
 .project-meta { margin: calc(34 * var(--u)) 0 0; display: grid; grid-template-columns: auto 1fr; column-gap: calc(40 * var(--u)); row-gap: calc(14 * var(--u)); align-items: end; }
 .project-meta dl { margin: 0; display: grid; gap: calc(14 * var(--u)); }
@@ -233,7 +243,7 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
 }
 .project-visit .arrow { width: calc(17 * var(--u)); height: calc(17 * var(--u)); }
 .project-visit.is-off { text-decoration: none; color: var(--muted); }
-.project-shots { overflow: auto; padding: calc(39 * var(--u)) 0 calc(60 * var(--u)); scrollbar-width: none; display: grid; gap: calc(20 * var(--u)); align-content: start; }
+.project-shots { overflow: auto; padding: calc(39 * var(--u)) 0 calc(28 * var(--u)); scrollbar-width: none; display: grid; gap: calc(20 * var(--u)); align-content: start; }
 .project-shots::-webkit-scrollbar, .project-info::-webkit-scrollbar { display: none; }
 .project-shots img { display: block; width: 100%; height: auto; border-radius: 2px; background: rgba(255, 255, 255, 0.35); }
 .project-shots img.is-art { width: auto; max-width: 100%; max-height: 74vh; justify-self: center; box-shadow: 0 10px 40px rgba(20, 20, 40, 0.18); }
@@ -395,9 +405,19 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
 .project-process { margin: 0 0 calc(30 * var(--u)); max-width: calc(440 * var(--u)); font: 400 calc(23 * var(--u)) / 1.45 var(--f-sans); color: #1d1d1d; }
 .project-process h3 { margin: 0 0 calc(12 * var(--u)); font: 400 calc(22 * var(--u)) / 1 var(--f-sans); text-transform: uppercase; color: #262626; }
 .project-process p { margin: 0 0 0.8em; }
-.project-nav { display: grid; grid-template-columns: 1fr 1fr; gap: calc(16 * var(--u)); margin: calc(40 * var(--u)) 0 calc(40 * var(--u)); padding-top: calc(20 * var(--u)); border-top: max(1.5px, calc(2.4 * var(--u))) solid #2a2a2a; }
+/* VP-118: a barra fixa no pé da ficha, de ponta a ponta: o anterior à esquerda, o próximo à direita, sempre no mesmo lugar */
+.project-nav {
+  grid-column: 1 / -1; align-self: end;
+  display: grid; grid-template-columns: 1fr 1fr; gap: calc(40 * var(--u));
+  margin: 0; padding: calc(16 * var(--u)) 0 calc(26 * var(--u));
+  border-top: max(1.5px, calc(2.4 * var(--u))) solid #2a2a2a;
+}
 .project-step { display: grid; gap: calc(6 * var(--u)); min-width: 0; padding: calc(6 * var(--u)) 0; text-decoration: none; color: var(--ink); }
-.project-step.is-next { text-align: right; }
+.project-step.is-next { text-align: right; justify-self: end; max-width: 100%; }
+.project-step.is-prev { justify-self: start; max-width: 100%; }
+.project-step .project-step-k span { display: inline-block; transition: transform 0.35s var(--ease); }
+.project-step.is-prev:hover .project-step-k span { transform: translateX(-4px); }
+.project-step.is-next:hover .project-step-k span { transform: translateX(4px); }
 .project-step-k { font: 400 calc(18 * var(--u)) / 1 var(--f-sans); text-transform: uppercase; letter-spacing: 0.04em; color: #262626; }
 .project-step-name { font: italic 500 calc(26 * var(--u)) / 1.1 var(--f-serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project-step:hover .project-step-name { text-decoration: underline; text-underline-offset: 0.16em; }
@@ -405,9 +425,9 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
 
 /* ── o contato: o WhatsApp (VP-06) ── */
 /* o cartão mais largo que o das telas: o e-mail e o WhatsApp cabem numa linha cada */
-.contact-card { width: calc(372 * var(--u)); }
-.contact-mail { font-size: calc(25 * var(--u)); }
-.contact-wa { display: flex; align-items: center; gap: calc(8 * var(--u)); margin-top: calc(10 * var(--u)); font-size: calc(19 * var(--u)); text-decoration: none; color: #2b2b2b; white-space: nowrap; }
+.contact-card { width: calc(460 * var(--u)); }
+.contact-mail { font-size: calc(28 * var(--u)); }
+.contact-wa { display: flex; align-items: center; gap: calc(10 * var(--u)); margin-top: calc(14 * var(--u)); font-size: calc(21 * var(--u)); text-decoration: none; color: #2b2b2b; white-space: nowrap; }
 .contact-wa-k { font-weight: 700; color: var(--ink); }
 .contact-wa:hover span:last-of-type { text-decoration: underline; }
 .contact-wa .arrow { width: calc(14 * var(--u)); height: calc(14 * var(--u)); }
@@ -437,11 +457,13 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
   .label-name .arrow { width: 13px; height: 13px; }
   .label-cta { height: 30px; padding: 0 12px; font-size: 10.5px; }
   .contact-pill { left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); height: 40px; padding: 0 18px; font-size: 15px; }
-  .contact-card { left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: min(300px, calc(100vw - 32px)); padding: 22px 22px 20px; border-radius: 24px; }
-  .contact-kick, .contact-socials-k { font-size: 14px; }
-  .contact-mail { font-size: 18px; margin-top: 6px; }
-  .contact-socials-k { margin-top: 22px !important; }
-  .contact-socials { font-size: 17px; }
+  .contact-card { left: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: min(340px, calc(100vw - 32px)); padding: 28px 26px 24px; border-radius: 28px; }
+  .contact-kick, .contact-socials-k { font-size: 15px; }
+  .contact-kick { padding-right: 48px; }
+  .contact-mail { font-size: 19px; margin-top: 8px; }
+  .contact-socials-k { margin-top: 24px !important; }
+  .contact-socials { font-size: 18px; line-height: 1.45; margin-top: 8px; }
+  .contact-close { top: 14px; right: 14px; width: 40px; height: 40px; }
   .close { width: 40px; height: 40px; border-width: 1.5px; }
   .index-panel { left: 0; right: 0; width: auto; top: 64px; border-radius: 28px 28px 0 0; padding: 26px 16px 32px; }
   .index-panel .close { top: 18px; right: 16px; }
@@ -476,6 +498,15 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
   .project-visit { font-size: 16px; }
   .project-visit .arrow { width: 11px; height: 11px; }
   .project-shots { overflow: visible; padding: 0 12px 16px; gap: 10px; }
+  /* VP-118: no celular, a ficha rola inteira e a barra fica presa no pé dela */
+  .project-nav {
+    position: sticky; bottom: 0; z-index: 2; gap: 12px;
+    padding: 10px 20px calc(12px + env(safe-area-inset-bottom)); border-top-width: 1.5px;
+    background: rgba(236, 236, 244, 0.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  }
+  .project-step { padding: 4px 0; min-height: 44px; align-content: center; }
+  .project-step-k { font-size: 11px; }
+  .project-step-name { font-size: 17px; }
   .project-shots img.is-art { max-height: none; }
   .pre-coords { left: 16px; top: 76px; gap: 8px; }
   .pre-place { font-size: 15px; }
@@ -515,11 +546,11 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
   .project-desc { margin: 18px 0 14px; font-size: 16px; max-width: none; }
   .project-process { font-size: 15px; max-width: none; }
   .project-process h3 { font-size: 13px; }
-  .project-nav { margin: 18px 0 20px; padding-top: 12px; gap: 12px; border-top-width: 1.5px; }
+  /* (a barra anterior / próximo do celular é a de cima, presa no pé da ficha: VP-118) */
   .project-step { min-height: 44px; }
   .project-step-k { font-size: 11px; }
   .project-step-name { font-size: 17px; }
-  .contact-wa { font-size: 14px; margin-top: 8px; }
+  .contact-wa { font-size: 15px; margin-top: 10px; }
   .contact-wa .arrow { width: 9px; height: 9px; }
   .contact-socials a { display: inline-block; padding: 3px 0; }
 }
