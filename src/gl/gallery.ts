@@ -12,6 +12,15 @@
    canto, e o que passou desce para a esquerda (gl/math.ts, laneOffset).
    Antes, eles alternavam os cantos e cada um saía pelo canto de onde veio;
    esse desenho continua em ?alternado, para comparar.
+   Desde 21/out/2026 (VP-111, "aparecer o projeto anterior também… deve
+   ficar atrás como ficava… animar de forma inteligente"): o anterior
+   aparece embaixo à esquerda, atrás do da vez (os dois lados recuam em V);
+   o da vez recua para lá quando a fila anda, e o próximo vem de cima à
+   direita. O movimento arranca suave (o alvo segue com atraso curto; o
+   arrasto continua direto na mão), a câmera acompanha (recua um pouco,
+   olha para onde a fila vem e inclina de leve) e os de lado viram para o
+   meio, como numa vitrine. O brilho do movimento ficou bem mais baixo
+   (VP-110).
 
    A FÍSICA da rolagem: a entrada soma no alvo; a posição persegue o alvo
    com uma mola criticamente amortecida; parada, encaixa no cartão mais
@@ -55,7 +64,7 @@ import {
 } from "three/tsl";
 import { PROJECTS, aspectOf, colorOf, hasImage, imageUrl, videoUrl, type Category, type Project } from "../content/projects";
 import { drawCover, loadCoverFonts } from "../ui/musiccard";
-import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility, laneOffset, LANE } from "./math";
+import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility, laneOffset, laneDepth, laneVisibility, wrapSym, LANE } from "./math";
 
 export const D = 1.3;        // metros entre um cartão e o próximo (o de trás fica com ~75% do tamanho, como nas telas)
 export const FOCUS = 3.35;   // a distância do cartão da vez até a câmera
@@ -135,7 +144,8 @@ export interface Gallery {
   filter: () => Filter;
   /** os projetos da fila, na ordem (índices de PROJECTS) */
   order: () => number[];
-  setHidden: (index: number | null) => void;
+  /** instant: o cartão aparece (ou some) na hora, sem o fade (o fim do voo da ficha de volta, VP-112) */
+  setHidden: (index: number | null, instant?: boolean) => void;
   setRoom: (on: boolean) => void;
   room: () => boolean;
   /** a velocidade da rolagem (0…1), para o brilho do pós-processamento e o som */
@@ -271,6 +281,9 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
 
   /* ── a rolagem ── */
   let target = 0, pos = 0, vel = 0, idle = 0, reveal = 0;
+  /* VP-111: o alvo que a mola persegue segue o alvo de verdade com um atraso curto: o movimento arranca
+     suave em vez de dar um tranco (o arrasto move os dois juntos, então continua direto na mão) */
+  let follow = 0;
   let roomOn = false, room = 0;
   const pointer = new THREE.Vector2();
   const camGoal = new THREE.Vector3();
@@ -280,6 +293,8 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
   const settleSubs: ((i: number) => void)[] = [];
   const tint = new THREE.Color("#878ee9"), tmpC = new THREE.Color();
   const tmpV = new THREE.Vector3();
+  /* VP-111: a inclinação da câmera com o movimento (radianos) */
+  let bank = 0;
 
   const applyOrder = (f: Filter) => {
     const activeProject = order[indexOf(pos, N)];
@@ -290,7 +305,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     for (const c of cards) c.slot = order.indexOf(c.index);
     /* o da vez continua na vez, se ficou; senão, o primeiro */
     const s = Math.max(0, order.indexOf(activeProject));
-    target = pos = s; vel = 0; settled = -1;
+    target = pos = follow = s; vel = 0; settled = -1;
   };
 
   /* VP-95: o vídeo do cartão, criado na primeira vez que ele é a vez */
@@ -342,8 +357,11 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     idle += dt;
     if (N < 3) target = clampJS(target, 0, N - 1);
     if (idle > 0.18) target = damp(target, Math.round(target), 7, dt);
-    ({ pos, vel } = springStep(pos, vel, target, dt));
-    const speed = reduced ? 0 : clampJS(vel * 0.32, -1, 1);
+    follow = reduced ? target : damp(follow, target, 11, dt);
+    ({ pos, vel } = springStep(pos, vel, follow, dt));
+    /* VP-110: a dobra e as cores separadas pela velocidade, mais calmas (a roda anda de cartão em cartão desde
+       a VP-108, e a velocidade de cada passo chegava perto do máximo) */
+    const speed = reduced ? 0 : clampJS(vel * 0.2, -1, 1);
 
     /* a sala entra e sai devagar */
     room = damp(room, roomOn ? 1 : 0, reduced ? 60 : 2.6, dt);
@@ -352,9 +370,14 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
 
     /* a câmera: um pouco de paralaxe com o mouse; na fila olha o foco, na sala, o fundo do corredor */
     const par = reduced ? 0 : 1;
-    camGoal.set(pointer.x * 0.22 * par * k * (1 - R * 0.6), pointer.y * 0.14 * par * k * (1 - R * 0.5), 0);
+    /* VP-111: na fila, a câmera acompanha o movimento: recua um pouco (vê mais da fila), olha para o lado de onde
+       os cartões vêm e inclina de leve, como quem anda junto; parada, volta ao lugar. Na sala e no ?alternado, não. */
+    const sv = reduced || ALTERNATE ? 0 : clampJS(vel * 0.25, -1, 1) * (1 - R);
+    camGoal.set(pointer.x * 0.22 * par * k * (1 - R * 0.6), pointer.y * 0.14 * par * k * (1 - R * 0.5), Math.abs(sv) * 0.5 * k);
     camera.position.lerp(camGoal, 1 - Math.exp(-dt * 3.5));
-    look.set(0, 0, -FOCUS * k).lerp(tmpV.set(pointer.x * 0.5 * par * k, -0.05 * k, -12 * k), R);
+    look.set(sv * LANE.x * FOCUS * 0.3 * k, sv * LANE.y * FOCUS * 0.3 * k, -FOCUS * k).lerp(tmpV.set(pointer.x * 0.5 * par * k, -0.05 * k, -12 * k), R);
+    bank = damp(bank, -sv * 0.025, 6, dt);
+    camera.up.set(Math.sin(bank), Math.cos(bank), 0);
     camera.lookAt(look);
 
     /* o chão e as paredes, presos à câmera no eixo do corredor */
@@ -370,8 +393,11 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     for (const card of cards) {
       const s = card.slot;
       if (s < 0) { card.mesh.visible = false; card.u.alpha.value = 0; continue; }
-      const rel = wrap(s * D - pos * D, L, D, N);
+      /* VP-111: com o anterior à mostra, a fila dá a volta pelos dois lados (metade à frente, metade atrás) */
+      const rel = ALTERNATE ? wrap(s * D - pos * D, L, D, N) : wrapSym(s * D - pos * D, L, N);
       card.rel = rel;
+      /* quanto o cartão recua (em metros): no ?alternado, a fila passa pela câmera; na linha, os dois lados recuam em V */
+      const back = ALTERNATE ? rel : laneDepth(rel / D) * D;
       const away = ss(0, D * 0.95, Math.abs(rel));
       /* a abertura: os cartões vêm do fundo, um depois do outro */
       const rv = clampJS(reveal * 1.6 - s * 0.03 - Math.max(0, rel) * 0.035, 0, 1);
@@ -379,7 +405,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       const focus = 1 - ss(0.12, 0.55, Math.abs(rel) / D);
       /* VP-35: o da vez inclina com o mouse, até 4° */
       const tilt = reduced ? 0 : focus * 0.07;
-      const qz = (-FOCUS - rel - enter) * k;
+      const qz = (-FOCUS - back - enter) * k;
       let qx: number, qy: number, qrx: number, qry: number;
       if (ALTERNATE) {
         const spread = SPREAD[s % SPREAD.length];
@@ -392,16 +418,17 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
         qx = (sx * deep + narrow) * away * k; qy = sy * deep * away * k;
         qrx = spread[1] * 0.05 * away - pointer.y * tilt; qry = -spread[0] * 0.07 * away + pointer.x * tilt;
       } else {
-        /* VP-109: numa linha só. laneOffset dá o lugar "na tela"; vezes a distância até a câmera, em metros.
-           Os em pé, mais estreitos, ganham o que falta da largura de um site, para espiar tanto quanto. */
+        /* VP-109 e VP-111: numa linha só, os próximos em cima à direita e os anteriores embaixo à esquerda.
+           laneOffset dá o lugar "na tela"; vezes a distância até a câmera, em metros. Os em pé, mais estreitos,
+           ganham o que falta da largura de um site, para espiar tanto quanto. */
         const u = rel / D;
         const lane = laneOffset(u, portrait);
-        const dist = FOCUS + rel;
+        const dist = FOCUS + back;
         const narrow = Math.sign(u) * Math.max(0, (SITE_W - card.w) * 0.5) * (portrait ? 0.3 : 1) * Math.min(1, Math.abs(u));
-        qx = (lane.x * dist + narrow) * k; qy = (lane.y - (portrait ? LANE.portraitDrop : 0)) * dist * k;
+        qx = (lane.x * dist + narrow) * k; qy = lane.y * dist * k;
         qrx = LANE.rx * lane.t - pointer.y * tilt; qry = LANE.ry * lane.t + pointer.x * tilt;
       }
-      let alphaQ = visibility(rel, L, D, N) * easeOut(rv);
+      let alphaQ = (ALTERNATE ? visibility(rel, L, D, N) : laneVisibility(rel / D, N)) * easeOut(rv);
 
       /* a sala: os cartões nas paredes, alternando os lados */
       let px = qx, py = qy, pz = qz, rx = qrx, ry = qry;
@@ -421,12 +448,12 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
         px = mix1(qx, ex, R); py = mix1(qy, ey, R); pz = mix1(qz, ez, R);
         rx = mix1(qrx, -pointer.y * tilt * 0.5, R); ry = mix1(qry, yaw + pointer.x * tilt * 0.4 * fR, R);
         alphaQ = mix1(alphaQ, alphaR, R);
-        card.u.dim.value = mix1(clampJS(rel / (D * 3.4), 0, 0.55), clampJS(relR / (DR * 9), 0, 0.6), R);
-        card.u.blur.value = reduced ? 0 : mix1(clampJS((rel - D * 0.5) / D, 0, 1.6), clampJS((relR - DR) / (DR * 4), 0, 1.4), R);
+        card.u.dim.value = mix1(clampJS(back / (D * 3.4), 0, 0.55), clampJS(relR / (DR * 9), 0, 0.6), R);
+        card.u.blur.value = reduced ? 0 : mix1(clampJS((back - D * 0.5) / D, 0, 1.6), clampJS((relR - DR) / (DR * 4), 0, 1.4), R);
       } else {
-        card.u.dim.value = clampJS(rel / (D * 3.4), 0, 0.55);
-        /* VP-34: o desfoque começa no primeiro de trás e cresce até ~1,6 degrau de mipmap */
-        card.u.blur.value = reduced ? 0 : clampJS((rel - D * 0.5) / D, 0, 1.6);
+        card.u.dim.value = clampJS(back / (D * 3.4), 0, 0.55);
+        /* VP-34: o desfoque começa no primeiro de trás e cresce até ~1,6 degrau de mipmap (VP-111: dos dois lados) */
+        card.u.blur.value = reduced ? 0 : clampJS((back - D * 0.5) / D, 0, 1.6);
       }
       card.mesh.position.set(px, py, pz);
       card.mesh.rotation.set(rx, ry, 0);
@@ -446,7 +473,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       card.mesh.scale.set(card.w * sc, card.h * sc, 1);
       card.mesh.visible = card.u.alpha.value > 0.002;
       /* de trás para a frente */
-      card.mesh.renderOrder = -Math.round(mix1(rel, wrap(s * DR - pos * DR, LR, DR, N), R) * 10);
+      card.mesh.renderOrder = -Math.round(mix1(back, wrap(s * DR - pos * DR, LR, DR, N), R) * 10);
     }
 
     /* assentou num cartão novo: a onda e quem quiser saber (o som) */
@@ -512,7 +539,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
 
   return {
     update,
-    nudge: (n) => { target += n; idle = 0; },
+    nudge: (n) => { target += n; follow += n; idle = 0; },
     /* idle acima de 0,18 s: o ímã fica ligado, e o alvo já é um cartão inteiro, então ele não puxa para trás */
     step: (n) => { target = Math.round(target) + n; idle = 0.5; },
     target: () => target,
@@ -569,10 +596,10 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     },
     filter: () => pendingFilter ?? filt,
     order: () => order.slice(),
-    setHidden: (i) => { hidden = i; },
+    setHidden: (i, instant) => { hidden = i; if (instant) for (const c of cards) c.hide = hidden === c.index ? 1 : 0; },
     setRoom: (on) => { roomOn = on; idle = 0.5; },
     room: () => roomOn,
-    speed: () => Math.min(1, Math.abs(vel) * 0.32),
+    speed: () => Math.min(1, Math.abs(vel) * 0.22),
     color: () => tint,
     refreshCovers: () => {
       for (const c of cards) if (c.cover && c.map.value === c.cover.tex) { drawCover(c.cover.canvas, c.project); c.cover.tex.needsUpdate = true; }

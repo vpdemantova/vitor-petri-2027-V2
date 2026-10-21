@@ -144,6 +144,11 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
 
 /* ── os painéis (base) ───────────────────────────────────────────────── */
 .panel { position: fixed; z-index: 30; color: var(--ink); visibility: hidden; }
+/* VP-112: o painel que entra fica por cima do que sai; a imagem que voa entre o cartão e a ficha, por cima dos dois */
+.panel.is-front { z-index: 31; }
+.fly-layer { position: fixed; inset: 0; z-index: 36; pointer-events: none; }
+.fly { position: fixed; display: block; margin: 0; object-fit: cover; object-position: top center; pointer-events: none; will-change: transform; box-shadow: 0 18px 50px rgba(10, 10, 40, 0.35); }
+.fly.is-site { border-radius: 6px; }
 .panel.is-open { visibility: visible; }
 .close {
   position: absolute; display: grid; place-items: center; padding: 0; cursor: pointer;

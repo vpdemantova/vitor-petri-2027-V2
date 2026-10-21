@@ -102,7 +102,7 @@ Diferenças em relação às telas:
 
 - **WebGPU, com WebGL2 de reserva.** O `WebGPURenderer` do three.js escolhe o motor. Os materiais são escritos em **TSL** (a linguagem de nós do three), que vira WGSL no WebGPU e GLSL no WebGL2: o mesmo código nos dois.
 - **A galeria** (`src/gl/gallery.ts`; as contas puras em `src/gl/math.ts`, com testes):
-  - **a fila:** os cartões ao longo do eixo da câmera, sem fim. O da vez fica no foco; os de trás ficam menores, mais escuros e um pouco desfocados (um mipmap mais alto). Desde 20/out (VP-109), numa direção só: os de trás todos em cima à direita, cada um mais longe, e o que passou desce para a esquerda (`laneOffset` em `src/gl/math.ts`); o desenho de antes, com os cantos alternados, continua em `?alternado`;
+  - **a fila:** os cartões ao longo do eixo da câmera, sem fim. O da vez fica no foco; os de trás ficam menores, mais escuros e um pouco desfocados (um mipmap mais alto). Desde 20/out (VP-109), numa direção só, e desde 21/out (VP-111) passando pelo foco: os próximos em cima à direita e o anterior embaixo à esquerda, os dois atrás do da vez (`laneOffset`, `laneDepth` e `laneVisibility` em `src/gl/math.ts`); a câmera anda junto com o movimento e o arranque é suave; o desenho de antes, com os cantos alternados, continua em `?alternado`;
   - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto. A roda e o arrasto decidem (VP-108, `src/core/gesture.ts`): cada gesto anda pelo menos um cartão inteiro na direção dele, e nunca volta sozinho;
   - **a velocidade:** entra nos shaders. O cartão **dobra** e as cores **se separam** nas bordas; ao assentar, um **anel** sai do centro da imagem;
   - **os filtros:** a fila se refaz só com a categoria;
@@ -110,7 +110,8 @@ Diferenças em relação às telas:
   - **os vídeos:** nos cartões com laço, uma segunda textura (`VideoTexture`) entra num fade sobre a foto quando a fila para; o vídeo só baixa quando o cartão vira a vez e pausa ao sair;
   - **os cantos:** arredondados pela distância até a borda, no próprio shader.
 - **O fundo** (`src/gl/backdrop.ts`): o brilho medido, com pontilhado contra os degraus de 8 bits. Na abertura, acende do centro para fora; depois, muda de tom com a hora de Campinas (`src/gl/hour.ts`) e puxa de leve para o tom do cartão da vez.
-- **O pós-processamento** (`src/gl/post.ts`): o bloom só com o gesto e um grão de filme fino.
+- **O pós-processamento** (`src/gl/post.ts`): o bloom só com o gesto (baixo desde a VP-110: no máximo 0,16, só no quase branco) e um grão de filme fino.
+- **As transições dos painéis** (VP-112, `src/ui/panels.ts`): a imagem do cartão voa até a ficha e volta (o cartão só reacende quando ela chega); de ficha para ficha, o conteúdo sai para um lado e entra pelo outro; um painel no lugar de outro espera o primeiro sair. Na sala, a etiqueta fica no meio de baixo (VP-113).
 - **As partículas da abertura** (`src/gl/particles.ts`): um compute shader em TSL (compute de verdade no WebGPU, transform feedback no WebGL2).
 - **Imagens fora da linha principal.** O `ImageBitmapLoader` decodifica com `createImageBitmap`, com mipmaps e filtro anisotrópico. Primeiro vêm os quatro cartões perto da vez; o resto chega depois. No celular, os cartões vêm em 800 px (`<nome>-m.webp`).
 - **A primeira pintura** (VP-99): a abertura vem pronta no HTML e o JavaScript não a mexe de lugar (mexer a fazia pintar de novo, e a "maior pintura" ia para depois do JavaScript); os materiais compilam antes do primeiro quadro (`compileAsync`).

@@ -9,6 +9,11 @@
      mais fraco nas partes escuras, como numa película. Com "reduzir
      movimento", o grão fica parado.
    ?semefeitos no endereço desliga tudo (para comparar).
+   VP-110 (21/out/2026, "o brilho que brilha está mais alto do que deve"):
+   o brilho ficou bem mais baixo. Desde a VP-108, cada dente da roda anda
+   um cartão inteiro, e a velocidade de cada passo levava o brilho quase ao
+   máximo (0,9): os cartões claros ficavam brancos. Agora ele vai a no máximo
+   0,16, só no que é quase branco (corte em 0,86), e sobe e desce devagar.
 ════════════════════════════════════════════════════════════════════ */
 import * as THREE from "three/webgpu";
 import { pass, uniform, Fn, vec4, float, hash, screenCoordinate, time, dot, vec3, mix, smoothstep, renderOutput } from "three/tsl";
@@ -21,7 +26,8 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
   const uBloom = uniform(0);
   const uGrain = uniform(0.032);
   const uMove = uniform(reduced ? 0 : 1);
-  const glow = bloom(color, uBloom, 0.55, 0.62);
+  const glow = bloom(color, uBloom, 0.4, 0.86);
+  let bloomNow = 0;
   /* o grão é somado já em sRGB (no linear, ele estouraria nos pretos): a saída é feita aqui */
   pipeline.outputColorTransform = false;
 
@@ -37,7 +43,7 @@ export function createPost(renderer: THREE.WebGPURenderer, scene: THREE.Scene, c
 
   return {
     render: () => pipeline.render(),
-    /** 0…1: a velocidade da galeria acende o brilho */
-    setMotion: (v: number) => { uBloom.value = Math.min(0.9, v * 1.1); },
+    /** 0…1: a velocidade da galeria acende o brilho (VP-110: baixo, e sem piscar: sobe e desce devagar) */
+    setMotion: (v: number) => { bloomNow += (Math.min(0.16, v * 0.25) - bloomNow) * 0.1; uBloom.value = bloomNow; },
   };
 }

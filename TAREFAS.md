@@ -39,7 +39,7 @@
 |---|---|---|
 | Rodar no computador | `npm run dev` | http://localhost:5190 |
 | Conferir tudo (tipos, lint, testes) | `npm run check` | o mesmo que a Vercel e o GitHub (VP-98) rodam a cada envio |
-| Só os testes | `npm test` | 64 testes (Vitest): um por projeto, as contas (a fila numa direção só, inclusive), o `/pt` dos endereços e a roda e o arrasto |
+| Só os testes | `npm test` | 68 testes (Vitest): um por projeto, as contas (a fila, a profundidade e quem aparece, inclusive), o `/pt` dos endereços e a roda e o arrasto |
 | Gerar a versão final | `npm run build` | sai em `dist/`, com uma página por projeto |
 | Ver a versão final | `npm run preview` | http://localhost:5191 |
 | Refazer as imagens, as prévias e os ícones | `npm run images` | lê `media/`, grava `public/img/`, `public/og/` e os ícones |
@@ -297,6 +297,26 @@
   - **para comparar**, o desenho de antes continua em `?alternado`.
   O modo **sala** (R) continua com os cartões nas duas paredes, alternando os lados (é um corredor); a rolagem lá também anda numa direção só. Se quiser a sala com uma parede só: "VP-109: a sala com uma parede só".
   Conferido no computador (1440 × 900) e no celular (390 × 844): parado, no meio da rolagem e depois; o clique e o toque no cartão da vez e nos de trás.
+- [x] **VP-110** · [P1 · pequena] **O brilho estava alto demais** (você, 21/out: "o brilho que brilha está mais alto do que deve"). *21/out/2026.* O brilho do movimento (o bloom, VP-30) ficou bem mais baixo. Desde a VP-108, cada dente da roda anda um cartão inteiro, e a velocidade de cada passo levava o brilho quase ao máximo: os cartões claros estouravam em branco. Agora ele vai a no máximo 0,16 (era 0,9), só no que é quase branco, e sobe e desce devagar, sem piscar. A dobra e as cores separadas pela velocidade também ficaram mais calmas. O brilho lavanda do fundo não mudou: ele continua igual à medida das telas (conferido ponto a ponto).
+  *Se "alto" queria dizer o lugar* (o brilho lavanda do fundo está alto demais na tela), diga: "VP-110: o brilho do fundo mais para baixo".
+- [x] **VP-111** · [P1 · média] **O anterior aparece de novo, atrás, e o movimento mais imersivo** (você, 21/out: "a animação deve ser mais imersiva, e aparecer o projeto anterior também e não só o próximo! deve ficar atrás como ficava! animar de forma inteligente"). *21/out/2026.* A fila continua numa direção só (VP-109), agora passando pelo foco (`laneOffset`, `laneDepth`, `wrapSym` e `laneVisibility` em `src/gl/math.ts`, com 11 testes):
+  - **o anterior** fica embaixo à esquerda, **atrás** do da vez (onde ficava o cartão de baixo), menor, mais escuro e um pouco desfocado; **os próximos**, em cima à direita, como antes. Aparecem dois próximos e um anterior;
+  - **rolar para a frente:** o da vez recua para baixo e para a esquerda e vira o anterior; o próximo vem de cima e da direita até o foco. Nada mais passa por cima da tela;
+  - **o movimento:** arranca suave (o alvo segue com um atraso curto, sem tranco) e assenta macio; a câmera anda junto (recua um pouco, olha para o lado de onde os cartões vêm e inclina de leve) e volta ao lugar quando para; os de lado viram um pouco para o meio, como numa vitrine;
+  - as setas do teclado andam do mesmo jeito que a roda; o arrasto continua direto na mão;
+  - **com poucos cartões** (um filtro), ninguém troca de lado à vista;
+  - em pé (celular), a fila voltou ao meio (a descida da VP-109 saiu: com o anterior embaixo, não precisa mais).
+  Conferido parado e quadro a quadro (com o relógio da página 4× mais lento), no computador e no celular, em WebGPU e WebGL2; o clique no anterior volta a ele, o clique no próximo vai a ele. O desenho de antes da VP-109 continua em `?alternado`.
+- [x] **VP-112** · [P1 · média] **As animações de entrada e saída sem sobreposição** (você, 21/out: "o restante das animações não estão boas, estão dando overlap e não estão sendo animadas in e out da melhor forma"). *21/out/2026.* Filmei cada transição quadro a quadro e corrigi o que se sobrepunha (`src/ui/panels.ts`):
+  - **do cartão para a ficha:** a própria imagem do cartão voa até o lugar dela na ficha, enquanto o vidro cresce e o texto entra (antes, crescia uma caixa branca vazia e a imagem só aparecia depois);
+  - **da ficha de volta:** o texto sai, o vidro encolhe e a imagem voa de volta ao cartão; o cartão só reacende quando ela chega (antes, o cartão aparecia por baixo do vidro que ainda encolhia);
+  - **de uma ficha para outra** (anterior e próximo, ou o Índice): o conteúdo sai para um lado e o novo entra pelo outro, no sentido da fila (antes, piscava no lugar);
+  - **um painel no lugar de outro** (Perfil → Índice, Índice → ficha): o que sai sai depressa e o novo entra logo depois, por cima (antes, os dois animavam juntos, um por cima do outro);
+  - **a etiqueta** "Nome · VIEW PROJECT" espera os painéis acabarem de sair (antes, aparecia por cima da ficha que ainda fechava);
+  - **o Índice** só leva a galeria até a linha sob o mouse depois de o mouse andar (subindo por baixo de um mouse parado, as linhas passavam por ele e a galeria corria de projeto em projeto); as linhas entram mais cedo (o painel não fica um bloco branco vazio);
+  - **a abertura:** a poeira das partículas some em 1,1 s (eram 1,9 s, por cima dos cartões).
+  Com "reduzir movimento", tudo troca na hora, sem voo.
+- [x] **VP-113** · [P1 · pequena] **Na sala, o botão do projeto no meio de baixo** (você, 21/out: "na sala, deixe o botão de projeto bem no meio inferior só trocando o nome dos projetos"). *21/out/2026.* Na sala, a etiqueta "Nome ↗ · VIEW PROJECT" fica parada no meio de baixo, na linha do Contact e do pé, e não some com o movimento: ao andar pelo corredor, só o nome troca (deslizando). No celular, fica logo acima do Contato e do pé. Na fila, ela continua presa ao canto do cartão da vez.
 
 ---
 
@@ -362,5 +382,6 @@
 | 19/out/2026 | **Publicado** (be07979): o GitHub Actions passou e a Vercel pôs no ar sozinha. Conferido no endereço público: o vídeo toca no cartão da vez, `/pt` em português, no celular os cartões de 800 px, console limpo. Lighthouse público (do Windows): celular 81–83, computador 97/100/100/100. | VP-80, 81, 98, 99 |
 | 19/out/2026 | **Você achou dois defeitos:** os cliques não funcionavam (o cursor próprio pegava todos) e a roda ia e voltava. Os dois corrigidos e conferidos com mouse, roda, arrasto e toque. 57 testes. | VP-107, VP-108 |
 | 20/out/2026 | Os cartões numa direção só: os de trás todos em cima à direita, o que passou desce para a esquerda; em pé, a fila desce um pouco; o desenho de antes em `?alternado`. 64 testes. | VP-109 |
+| 21/out/2026 | O brilho do movimento bem mais baixo; o anterior de volta, atrás e embaixo à esquerda, com a câmera que anda junto e o arranque suave; as entradas e saídas sem sobreposição (a imagem do cartão voa até a ficha e volta); na sala, a etiqueta parada no meio de baixo. Conferido quadro a quadro. 68 testes. | VP-110 a VP-113 |
 
-*Último número em uso: VP-109. O próximo é VP-110 (ou o primeiro número livre da categoria).*
+*Último número em uso: VP-113. O próximo é VP-114 (ou o primeiro número livre da categoria).*

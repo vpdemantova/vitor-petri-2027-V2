@@ -96,7 +96,7 @@ const panels = createPanels(app, {
   onFilter: (f) => gallery?.setFilter(f),
   order: () => gallery?.order() ?? PROJECTS.map((_, i) => i),
   cardRect: (i) => gallery?.screenRect(i) ?? null,
-  onProjectShown: (i) => gallery?.setHidden(i),
+  onProjectShown: (i, instant) => gallery?.setHidden(i, instant),
 });
 
 function openProject(i: number, fromCard = false) {
@@ -134,6 +134,16 @@ function route(r: Route) {
 startRouter();
 onRoute(route);
 
+/** VP-113: o lugar da etiqueta na sala: no meio de baixo, na linha do Contact e do pé quando cabe entre eles
+    (no computador); senão (no celular), logo acima deles */
+function dockSpot(w: number, h: number) {
+  const pill = contact.pill.getBoundingClientRect(), ft = foot.el.getBoundingClientRect();
+  const x = (innerWidth - w) / 2;
+  const fits = pill.width > 0 && ft.width > 0 && x > pill.right + 16 && x + w < ft.left - 16;
+  const line = ft.top + ft.height / 2;
+  return { x, y: fits ? line - h / 2 : Math.min(pill.top, ft.top) - h - 14 };
+}
+
 /* ── as teclas de toda a página ── */
 function toggleRoom() {
   if (!gallery) return;
@@ -168,8 +178,8 @@ window.addEventListener("keydown", (e) => {
   else if (k === "s") setSound(!soundOn());
   else if (k === "r" && !panels.current()) toggleRoom();
   else if (!panels.current() && gallery) {
-    if (["ArrowDown", "ArrowRight", "PageDown", "j"].includes(k)) { gallery.nudge(1); hint.done(); e.preventDefault(); }
-    else if (["ArrowUp", "ArrowLeft", "PageUp", "k"].includes(k)) { gallery.nudge(-1); hint.done(); e.preventDefault(); }
+    if (["ArrowDown", "ArrowRight", "PageDown", "j"].includes(k)) { gallery.step(1); hint.done(); e.preventDefault(); }
+    else if (["ArrowUp", "ArrowLeft", "PageUp", "k"].includes(k)) { gallery.step(-1); hint.done(); e.preventDefault(); }
     else if (k === "Home") gallery.goTo(gallery.order()[0]);
     else if (k === "End") { const o = gallery.order(); gallery.goTo(o[o.length - 1]); }
     else if (k === "Enter" && (document.activeElement === document.body || document.activeElement === canvas)) openProject(gallery.active().index, true);
@@ -254,8 +264,12 @@ async function boot() {
     const { index, focus, slot } = g.active();
     label.set(index);
     const panel = panels.current();
-    const want = introDone && (!panel || panel === "index") && !contact.isOpen() && focus > 0.55 && g.anchor(anchor);
-    label.frame(dt, want, anchor.x, anchor.y);
+    /* VP-112: espera os painéis acabarem de sair (antes, ela aparecia por cima da ficha que ainda encolhia);
+       VP-113: na sala, fica parada no meio de baixo e não some com o movimento (só o nome troca) */
+    const docked = g.room();
+    const free = introDone && (!panel || panel === "index") && !panels.busy() && !contact.isOpen();
+    const want = docked ? free : free && focus > 0.55 && g.anchor(anchor);
+    label.frame(dt, want, anchor.x, anchor.y, docked ? dockSpot : null);
     const f = g.filter();
     foot.setCount(slot, g.order().length, f === "all" ? null : f);
 

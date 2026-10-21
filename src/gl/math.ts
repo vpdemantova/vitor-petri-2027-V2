@@ -81,52 +81,91 @@ export function visibility(rel: number, L: number, D: number, n: number) {
 }
 
 /**
- * A FILA NUMA DIREÇÃO SÓ (VP-109, 20/out/2026: "uma direção somente e não alternado").
- * Antes, os cartões de trás alternavam os cantos (em cima à direita, embaixo à esquerda), e cada um
- * entrava e saía pelo seu canto: a cada cartão a rolagem parecia mudar de direção. Agora todos estão
- * numa linha só: os de trás sobem para a direita e se juntam no canto; o que passou desce para a
- * esquerda e some. Rolar para a frente leva tudo para baixo e para a esquerda, sempre.
- * As medidas são "na tela" (deslocamento ÷ distância da câmera), e por isso não dependem do tamanho
- * da janela nem do fator k. O primeiro de trás fica onde já ficava: 0,86 m e 0,5 m a 4,65 m da câmera
- * (FOCUS + D, em gl/gallery.ts), o primeiro canto das telas.
+ * A FILA (VP-109, 20/out/2026; VP-111, 21/out/2026).
+ * VP-109, "uma direção somente e não alternado": antes, os cartões de trás alternavam os cantos e cada
+ * um entrava e saía pelo seu canto, e a rolagem parecia mudar de direção a cada cartão. Agora todos
+ * estão numa linha só, e rolar leva tudo para o mesmo lado.
+ * VP-111, "aparecer o projeto anterior também e não só o próximo… deve ficar atrás como ficava": a linha
+ * passa pelo foco. Os próximos ficam em cima à direita; os anteriores, embaixo à esquerda (onde ficava o
+ * cartão de baixo); todos ATRÁS do da vez, mais longe da câmera. Rolar para a frente: o da vez recua
+ * para baixo e para a esquerda e vira o anterior; o próximo vem de cima e da direita até o foco. Nada
+ * mais passa por cima da tela.
+ * As medidas são "na tela" (deslocamento ÷ distância da câmera), e por isso não dependem do tamanho da
+ * janela nem do fator k. O primeiro de cada lado fica onde já ficava: 0,86 m e 0,5 m a 4,65 m da câmera
+ * (FOCUS + D, em gl/gallery.ts), os cantos das telas.
  */
 export const LANE = {
   x: 0.86 / 4.65,
   y: 0.5 / 4.65,
-  /** em pé, os vizinhos vão mais para cima que para o lado (como antes) */
+  /** em pé, os vizinhos vão mais para cima e para baixo que para o lado (como antes) */
   portraitX: 0.42, portraitY: 1.9,
-  /** o quanto os de trás se juntam no canto (maior = mais juntos); em pé falta lugar, então mais */
+  /** o quanto os de cada lado se juntam no canto (maior = mais juntos); em pé falta lugar, então mais */
   bunch: 0.4, bunchPortrait: 1.5,
-  /** quanto o que passou corre para o lado ao sair (um cartão depois do foco), para não cobrir o da vez */
-  exit: 2.2,
-  /** depois do primeiro de trás, a subida achata (maior = mais reto para o lado): a pilha fica abaixo do menu */
+  /** depois do primeiro de cada lado, a altura quase para de crescer: a pilha fica longe do menu e do pé */
   flat: 11,
-  /** em pé, a fila inteira desce um pouco (na tela): os de trás ficam em cima e o de baixo não fica vazio */
-  portraitDrop: 0.04,
-  /** a inclinação de quem está fora do foco (radianos), a mesma de antes */
-  rx: 0.025, ry: -0.06,
+  /** a profundidade em V: o bico arredondado no foco (0 = bico vivo, com tranco) */
+  bend: 0.3,
+  /** quantos aparecem: os próximos até `ahead`, os anteriores até `behind` (em cartões), e somem em `fade` */
+  ahead: 2.2, behind: 1.2, fade: 0.9,
+  /** VP-111: os de lado viram um pouco para o meio, como numa vitrine (radianos) */
+  rx: 0.04, ry: -0.12,
 };
 
+/** O desenho de um lado: g, para o lado; gy, para cima (que achata depois do primeiro). v ≥ 0. */
+function laneSide(v: number, a: number) {
+  const g = Math.log1p(a * v) / Math.log1p(a);
+  let gy = g;
+  if (v > 1) {
+    const d1 = a / ((1 + a) * Math.log1p(a));
+    gy = 1 + (d1 / LANE.flat) * Math.log1p(LANE.flat * (v - 1));
+  }
+  return { g, gy };
+}
+
 /**
- * Onde fica, na tela, um cartão a u lugares do foco (u > 0: atrás; u < 0: já passou).
+ * Onde fica, na tela, um cartão a u lugares do foco (u > 0: os próximos; u < 0: os anteriores).
  * x, y: o deslocamento "na tela" (multiplicar pela distância até a câmera para ter metros);
  * t: o quanto ele está fora do foco, de −1 a 1 (para a inclinação e o ajuste dos estreitos).
- * A curva não quebra no foco: o que passou sai com a mesma velocidade com que chegou e acelera
- * para o lado (até LANE.exit) enquanto some.
+ * Os dois lados são o espelho um do outro, e a curva passa pelo foco sem quebra.
  */
 export function laneOffset(u: number, portrait: boolean) {
   const a = portrait ? LANE.bunchPortrait : LANE.bunch;
-  const slope = a / Math.log1p(a);
-  const g = u >= 0 ? Math.log1p(a * u) / Math.log1p(a) : u * (slope + (LANE.exit - slope) * smoothstep(0, 1, -u));
-  /* depois do primeiro de trás, a altura quase para de crescer (com a mesma inclinação em u = 1, sem quebra):
-     os de trás seguem para a direita, abaixo do menu */
-  let gy = g;
-  if (u > 1) {
-    const d1 = a / ((1 + a) * Math.log1p(a));
-    gy = 1 + (d1 / LANE.flat) * Math.log1p(LANE.flat * (u - 1));
-  }
+  const s = Math.sign(u);
+  const { g, gy } = laneSide(Math.abs(u), a);
   const sx = LANE.x * (portrait ? LANE.portraitX : 1), sy = LANE.y * (portrait ? LANE.portraitY : 1);
-  return { x: sx * g, y: sy * gy, t: clamp(g, -1, 1) };
+  return { x: s * sx * g, y: s * sy * gy, t: clamp(s * g, -1, 1) };
+}
+
+/**
+ * VP-111: quanto mais longe da câmera (em cartões) fica um cartão a u lugares do foco: os dois lados
+ * recuam igual. O V tem o bico arredondado, para o cartão chegar e sair do foco sem tranco; 1 no
+ * primeiro de cada lado, como antes.
+ */
+export function laneDepth(u: number) {
+  const c = LANE.bend, v = Math.abs(u);
+  return (Math.sqrt(v * v + c * c) - c) / (Math.sqrt(1 + c * c) - c);
+}
+
+/**
+ * VP-111: a volta da fila para os dois lados. Com os anteriores à mostra, a fila sem fim divide os
+ * cartões ao meio: metade à frente, metade atrás. r e L em metros; com menos de três, não dá a volta.
+ */
+export function wrapSym(r: number, L: number, n: number) {
+  if (n < 3) return r;
+  let v = ((r % L) + L) % L;
+  if (v >= L / 2) v -= L;
+  return v;
+}
+
+/**
+ * VP-111: quanto aparece (0…1) um cartão a u lugares do foco: uns dois próximos (o terceiro some) e um
+ * anterior. Com poucos cartões, eles somem antes do ponto em que a fila dá a volta (metade da fila), para
+ * nenhum trocar de lado à vista.
+ */
+export function laneVisibility(u: number, n: number) {
+  const half = n < 3 ? Infinity : n / 2 - 0.05;
+  const ahead = Math.min(LANE.ahead + LANE.fade, half), behind = Math.min(LANE.behind + LANE.fade, half);
+  return u >= 0 ? 1 - smoothstep(ahead - LANE.fade, ahead, u) : 1 - smoothstep(behind - LANE.fade, behind, -u);
 }
 
 /** O texto "03 / 14" do contador. */

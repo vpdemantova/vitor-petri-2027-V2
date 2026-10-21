@@ -146,8 +146,9 @@ export function createIntroParticles(renderer: THREE.WebGPURenderer, scene: THRE
       uProg.value = prog; uT.value = t; uDt.value = Math.min(dt, 1 / 30);
       if (burstT >= 0) {
         burstT += dt;
-        uBurst.value = Math.min(1, burstT / 1.9);
-        if (burstT > 2.1 && resolveBurst) { resolveBurst(); resolveBurst = null; }
+        /* VP-112 (21/out/2026): os pontos se desfazem em 1,1 s (eram 1,9): a poeira não fica sobre os cartões */
+        uBurst.value = Math.min(1, burstT / 1.1);
+        if (burstT > 1.25 && resolveBurst) { resolveBurst(); resolveBurst = null; }
       }
       renderer.compute(step);
     },
