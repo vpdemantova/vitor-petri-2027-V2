@@ -9,7 +9,7 @@ import { SOUND_ENABLED } from "../core/sound";
 
 const KEYS: [string[], Key][] = [
   [["←", "→"], "kNext"], [["Enter"], "kOpen"], [["I"], "kIndex"], [["P"], "kProfile"], [["C"], "kContact"],
-  [["R"], "kRoom"], [["S"], "kSound"], [["L"], "kLang"], [["Esc"], "kClose"], [["?"], "kHelp"],
+  [["V"], "kView"], [["R"], "kRoom"], [["S"], "kSound"], [["L"], "kLang"], [["Esc"], "kClose"], [["?"], "kHelp"],
 ].filter(([, d]) => SOUND_ENABLED || d !== "kSound") as [string[], Key][];
 
 export function createShortcuts() {

@@ -39,7 +39,7 @@
 |---|---|---|
 | Rodar no computador | `npm run dev` | http://localhost:5190 |
 | Conferir tudo (tipos, lint, testes) | `npm run check` | o mesmo que a Vercel e o GitHub (VP-98) rodam a cada envio |
-| Só os testes | `npm test` | 78 testes (Vitest): um por projeto, as contas (a fila, a troca em arco, a profundidade e quem aparece), o `/pt` dos endereços, a roda, o arrasto e o embalo, e a homografia do voo da ficha |
+| Só os testes | `npm test` | 80 testes (Vitest): um por projeto, as contas (a fila, a cascata, a profundidade e quem aparece), o `/pt` dos endereços, a roda, o arrasto e o embalo, e a homografia do voo da ficha |
 | Gerar a versão final | `npm run build` | sai em `dist/`, com uma página por projeto |
 | Ver a versão final | `npm run preview` | http://localhost:5191 |
 | Refazer as imagens, as prévias e os ícones | `npm run images` | lê `media/`, grava `public/img/`, `public/og/` e os ícones |
@@ -59,10 +59,11 @@
 | `?ref=3` | o modo comparação com a tela 3 (VP-10); as telas ficam em `ref/` (VP-94) |
 | `?semvideo` | só as fotos nos cartões (VP-95) |
 | `?alternado` | os cartões de trás alternando os cantos, como antes da VP-109 (para comparar) |
+| `?vista=cascata` / `?vista=sala` | abre direto na Cascata ou na Sala (VP-126) |
 | `/pt/…` | a mesma página em português (VP-101): `/pt`, `/pt/index`, `/pt/project/laboratorio` |
 
 ### No teclado
-`← →` (ou `↑ ↓`) muda de projeto · `Enter` abre · `I` índice · `P` perfil · `C` contato · `R` a sala · `L` a língua · `Esc` fecha · `?` mostra esta lista na tela. (`S`, o som, volta quando o som voltar: VP-114.)
+`← →` (ou `↑ ↓`) muda de projeto · `Enter` abre · `I` índice · `P` perfil · `C` contato · `V` as três vistas (fila, sala, cascata) · `R` a sala · `L` a língua · `Esc` fecha · `?` mostra esta lista na tela. (`S`, o som, volta quando o som voltar: VP-114.)
 
 ### Antes de dar uma tarefa por pronta
 - [ ] `npm run check` e `npm run build` sem erro.
@@ -319,7 +320,7 @@
 - [x] **VP-113** · [P1 · pequena] **Na sala, o botão do projeto no meio de baixo** (você, 21/out: "na sala, deixe o botão de projeto bem no meio inferior só trocando o nome dos projetos"). *21/out/2026.* Na sala, a etiqueta "Nome ↗ · VIEW PROJECT" fica parada no meio de baixo, na linha do Contact e do pé, e não some com o movimento: ao andar pelo corredor, só o nome troca (deslizando). No celular, fica logo acima do Contato e do pé. Na fila, ela continua presa ao canto do cartão da vez.
 - [x] **VP-114** · [P1 · pequena] **Sem o som, por enquanto** (você, 21/out: "remova o som por enquanto!"). *21/out/2026.* O som do site está desligado por uma chave só, `SOUND_ENABLED` em `src/core/sound.ts`: o botão Som saiu do pé, a tecla S e a linha dela nos atalhos também, as notas da galeria e a prévia da gravação não tocam, e quem tinha deixado o som ligado (guardado no navegador) também não ouve nada. O tocador da Chanson Antique na ficha continua, porque só toca com um clique. Para voltar: `SOUND_ENABLED = true`.
   *Prompt:* "VP-114: liga o som de novo."
-- [x] **VP-115** · [P1 · média] **A troca de cartão sem estalo** (você, 21/out: "as animações estão bem ruins ainda! ponha mais atenção nelas todas"). *21/out/2026.* Filmei um passo da galeria em câmera lenta (8×) e vi o problema: no meio do caminho, o da vez e o próximo passavam pela mesma profundidade, um por cima do outro, e a troca de quem fica na frente aparecia como um estalo. Agora a troca é em arco (`laneSwing` em `src/gl/math.ts`, com um teste que garante que os dois não se tocam no meio): o que chega passa por cima, o que sai passa por baixo, e eles trocam de frente no vão entre os dois. A câmera não anda mais com a rolagem (na VP-111 ela recuava, olhava e inclinava, e a cena inteira balançava): fica só a paralaxe do mouse.
+- [-] **VP-115** · [P1 · média] *(Desfeita em 22/out/2026: você achou o movimento estranho; ver a VP-124.)* **A troca de cartão sem estalo** (você, 21/out: "as animações estão bem ruins ainda! ponha mais atenção nelas todas"). *21/out/2026.* Filmei um passo da galeria em câmera lenta (8×) e vi o problema: no meio do caminho, o da vez e o próximo passavam pela mesma profundidade, um por cima do outro, e a troca de quem fica na frente aparecia como um estalo. Agora a troca é em arco (`laneSwing` em `src/gl/math.ts`, com um teste que garante que os dois não se tocam no meio): o que chega passa por cima, o que sai passa por baixo, e eles trocam de frente no vão entre os dois. A câmera não anda mais com a rolagem (na VP-111 ela recuava, olhava e inclinava, e a cena inteira balançava): fica só a paralaxe do mouse.
 - [x] **VP-116** · [P1 · pequena] **A galeria rola mais depois de soltar o mouse** (você, 21/out: "deixe a galeria rolar mais depois que o mouse larga, diminua o freio"). *21/out/2026.* Antes, ao soltar, o embalo valia no máximo uma fração de cartão (a conta usava só o último movimento) e a mola freava forte. Agora (`releaseVelocity`, `coast` e `GLIDE` em `src/core/gesture.ts`, com 4 testes):
   - a velocidade da mão é medida nos últimos ~100 ms (a mão parada antes de soltar não joga a fila);
   - a fila continua deslizando com esse embalo, com um freio leve, até o cartão inteiro em que ele a leva: um arremesso de mouse anda uns 2 a 4 cartões, um de dedo, mais; o teto é 12;
@@ -335,6 +336,23 @@
 - [x] **VP-123** · [P2 · pequena] **Entrar e sair da sala sem fantasmas.** *21/out/2026.* Na passagem da fila para a sala (e de volta), os cartões que somem num modo esmaeciam durante o caminho inteiro e atravessavam a tela meio transparentes. Agora quem some, some logo no começo, e quem aparece, só no fim.
 
 Como conferi as animações desta rodada: o relógio da página 4 a 8 vezes mais lento e uma tira de fotos a cada ~100 ms de cada transição (a galeria, a ficha, o contato, o Perfil, o Índice, a sala e a abertura), vistas quadro a quadro antes e depois de cada mudança; e um roteiro que clica, rola, arrasta e toca em tudo, no computador e no celular, nos dois motores e com "reduzir movimento".
+- [x] **VP-124** · [P1 · pequena] **A galeria de volta ao movimento que estava perfeito** (você, 22/out: "a animação da galeria estava perfeita..! agora está meio estranha, era pra ser mais fluida!"). *22/out/2026.* O movimento da fila voltou exatamente ao de 21/out de manhã (9e85db6), o que você aprovou: saiu o arco da troca da VP-115 (o que chegava subia e o que saía descia: era isso o estranho), voltou a câmera que anda junto (recua, olha e inclina de leve) e a mola de antes. Ficou o deslize ao soltar o arrasto (VP-116), que você tinha pedido.
+- [x] **VP-125** · [P1 · pequena] **Anterior e próximo só embaixo do texto** (você, 22/out: "os botões de next e previous nos projetos devem só ocupar a linha menor do texto e não tudo"). *22/out/2026.* A barra anterior / próximo ficou só na largura da coluna do texto, presa no pé dela; as imagens descem até o fim da ficha, ao lado. O texto que passa do fim da coluna se apaga antes da barra, em vez de ser cortado seco. No celular, a barra virou uma linha fina.
+- [x] **VP-126** · [P1 · grande] **A terceira vista: a Cascata** (você, 22/out: "coloque um modo cascata, além da lista e da fila… coloque três tipos de views, e essa nova muda o fundo!"). *22/out/2026.* O pé agora tem as três vistas: **Fila · Sala · Cascata** (no celular, os três desenhos; a tecla **V** passa por elas, e o **R** continua indo e voltando da sala). A lista continua no Índice, no alto.
+  - **A Cascata:** os mesmos cartões descem, um depois do outro, de cima para baixo, até uma grade em colunas (o "masonry": cada um na coluna mais curta, na proporção dele; 4 colunas no computador, 3 em telas quase quadradas, 2 no celular), com sombras macias;
+  - **o fundo muda:** vira papel claro (#f2f1ee) com um lavanda bem leve no meio, e a página acompanha (o logotipo, o menu, o pé, o cursor e a dica ficam escuros), tudo junto, numa transição só; o brilho do movimento fica desligado nela; no alto e no pé, um esmaecimento de papel deixa o logotipo e o pé limpos quando os cartões rolam por baixo;
+  - **a rolagem é contínua**, de cima para baixo, como uma página: a roda, o arrasto (com embalo ao soltar) e as setas (meia tela por vez); ao rolar, os cartões dobram de leve na vertical;
+  - **sob o mouse**, o cartão chega mais perto, inclina com ele e a sombra cresce; o cursor diz VER em qualquer cartão, e o clique (ou o toque) abre a ficha, que nasce do cartão como na fila;
+  - a etiqueta fica no meio de baixo (como na sala), com o nome do cartão sob o mouse ou do que está no meio da tela; o contador e o vídeo do cartão acompanham;
+  - os filtros do Índice refazem a grade; ao voltar para a fila, ela continua do cartão que você via na cascata;
+  - para conferir, `?vista=cascata` (ou `?vista=sala`) abre direto nela. As contas (`masonry`, `cascadeDelay`) estão em `src/gl/math.ts`, com 4 testes.
+  *Se "cascata" era outro desenho* (por exemplo, os cartões em escada, sobrepostos na diagonal, ou a Lista no lugar da Sala no seletor), diga: "VP-126: a cascata como [ ]".
+- [x] **VP-127** · [P1 · média] **Os cards com mais força** (você, 22/out: "eu pedi pra melhorar a animação dos cards, porque estão meio fracos"). *22/out/2026.*
+  - **a ficha do projeto:** o título sobe letra a letra e os parágrafos linha a linha, cada um de trás da sua máscara (o SplitText do GSAP, livre desde a 3.13); a função, o tipo e o link entram em cascata; as outras imagens sobem uma depois da outra enquanto a primeira voa do cartão. Ao passar de projeto, as letras e as linhas saem por cima e as novas entram por baixo, sem deixar o vidro vazio;
+  - **o Perfil:** o texto grande sobe linha a linha;
+  - **o contato:** cada linha e cada rede entram uma de cada vez, subindo, e o × entra girando; ao fechar, saem na ordem inversa;
+  - **os cartões da galeria:** um brilho de vidro macio segue o mouse sobre o cartão (nas três vistas). O movimento da fila não mudou (VP-124).
+  Conferido em câmera lenta (o relógio da página 5× mais devagar), quadro a quadro, e com a troca de língua com a ficha e o Perfil abertos (nenhum texto antigo volta).
 
 ---
 
@@ -375,6 +393,11 @@ Como conferi as animações desta rodada: o relógio da página 4 a 8 vezes mais
 **Vídeo num cartão que ainda não tem:**
 > "Põe vídeo no cartão do [projeto]: [endereço], [girando / rolando], esperar [ ] s para carregar."
 
+**As suas correções de desenho** (quando você redesenhar alguma parte):
+> "Correções do Vitor Petri: [a tela: a fila / a cascata / a ficha / o Índice / o Perfil / o contato], [o que muda, em tópicos], [anexo: o desenho, um print riscado ou a referência]."
+
+Um item por tela, e o que não puder ser feito sem você vai para o topo deste arquivo, com o porquê.
+
 ---
 
 ## 16. Registro
@@ -402,5 +425,6 @@ Como conferi as animações desta rodada: o relógio da página 4 a 8 vezes mais
 | 20/out/2026 | Os cartões numa direção só: os de trás todos em cima à direita, o que passou desce para a esquerda; em pé, a fila desce um pouco; o desenho de antes em `?alternado`. 64 testes. | VP-109 |
 | 21/out/2026 | O brilho do movimento bem mais baixo; o anterior de volta, atrás e embaixo à esquerda, com a câmera que anda junto e o arranque suave; as entradas e saídas sem sobreposição (a imagem do cartão voa até a ficha e volta); na sala, a etiqueta parada no meio de baixo. Conferido quadro a quadro. 68 testes. | VP-110 a VP-113 |
 | 21/out/2026 | À noite: sem o som (por ora); a troca de cartão em arco, sem estalo, e a câmera parada; a galeria rola mais depois de soltar; anterior e próximo numa barra fixa no pé da ficha; a ficha nasce do cartão 3D com a mesma perspectiva; o contato com ×, maior e com respiro, nascendo da pílula; o Perfil, o Índice, a abertura e a sala sem pulos. Conferido quadro a quadro, em câmera lenta. 78 testes. | VP-114 a VP-123 |
+| 22/out/2026 | O movimento da galeria de volta ao de 21/out de manhã (o que você aprovou); anterior e próximo só embaixo do texto; a terceira vista, a Cascata, com o fundo claro; os cards com mais força (o texto sobe de trás de máscaras, o contato em cascata, o brilho do vidro sob o mouse). 80 testes. | VP-124 a VP-127 |
 
-*Último número em uso: VP-123. O próximo é VP-124 (ou o primeiro número livre da categoria).*
+*Último número em uso: VP-127. O próximo é VP-128 (ou o primeiro número livre da categoria).*

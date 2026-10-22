@@ -15,6 +15,9 @@
    mouse larga, diminua o freio"), ao soltar com a mão ainda andando, a
    fila continua deslizando com o embalo (mais longe e com um freio leve),
    até o cartão inteiro em que o embalo a leva.
+   VP-126 (22/out/2026): na CASCATA, a roda e o arrasto não andam de cartão
+   em cartão: rolam a grade, contínuos, de cima para baixo, como uma
+   página; o arrasto, ao soltar, continua com o embalo da mão.
 ════════════════════════════════════════════════════════════════════ */
 import type { Gallery } from "../gl/gallery";
 import { createWheelStepper, releaseTarget, dragAxis, releaseVelocity, coast } from "./gesture";
@@ -48,6 +51,7 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
     if (o.blocked() || document.documentElement.dataset.panel) return;
     const scale = e.deltaMode === 1 ? 32 : e.deltaMode === 2 ? 600 : 1;
     const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * scale;
+    if (g.view() === "cascade") { g.scrollBy(d); o.onMove(); return; }
     const n = wheel(d, performance.now());
     if (n) g.step(n);
     o.onMove();
@@ -56,6 +60,8 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
   let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0, moved = 0, start = 0, travel = 0;
   /* VP-116: as últimas posições da mão (t em ms, x em cartões), para o embalo ao soltar */
   let samples: { t: number; x: number }[] = [];
+  /* VP-126: na cascata, as últimas alturas da mão (t em ms, x em pixels da tela) */
+  let samplesPx: { t: number; x: number }[] = [];
   let axis: "x" | "y" | null = null;
   canvas.addEventListener("pointerdown", (e) => {
     if (o.blocked() || o.consumes?.()) return;
@@ -63,6 +69,7 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
     lastX = downX = e.clientX; lastY = downY = e.clientY;
     start = g.target(); travel = 0;
     samples = [{ t: performance.now(), x: 0 }];
+    samplesPx = [{ t: performance.now(), x: e.clientY }];
     canvas.setPointerCapture(e.pointerId);
     o.onDrag(true);
   });
@@ -70,6 +77,17 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
     if (!dragging) return;
     moved = Math.hypot(e.clientX - downX, e.clientY - downY);
     /* antes de passar do toque, nada anda; depois, um eixo só, o que andou mais até ali */
+    /* VP-126: na cascata, a grade acompanha a mão na vertical, depois de passar do toque */
+    if (g.view() === "cascade") {
+      if (moved <= DRAG.tap && !axis) return;
+      axis = "y";
+      g.scrollBy(-(e.clientY - lastY));
+      samplesPx.push({ t: performance.now(), x: e.clientY });
+      if (samplesPx.length > 24) samplesPx.shift();
+      lastY = e.clientY; lastX = e.clientX;
+      o.onMove();
+      return;
+    }
     if (!axis) {
       if (moved <= DRAG.tap) return;
       axis = dragAxis(e.clientX - downX, e.clientY - downY);
@@ -96,6 +114,8 @@ export function bindInput(canvas: HTMLCanvasElement, g: Gallery, o: Opts) {
       if (hit !== null) o.onTap(hit);
       return;
     }
+    /* VP-126: na cascata, ao soltar, a grade continua com o embalo da mão (em pixels por segundo) */
+    if (g.view() === "cascade") { g.fling(-releaseVelocity(samplesPx, performance.now())); return; }
     /* ao soltar: com a mão ainda andando, a fila desliza com o embalo (VP-116) até o cartão inteiro em que ele a leva;
        parada, vai ao próximo cartão inteiro na direção do arrasto */
     const extra = coast(releaseVelocity(samples, performance.now()));

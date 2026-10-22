@@ -1,6 +1,6 @@
 /* VP-71: as contas puras da galeria (gl/math.ts). */
 import { describe, expect, it } from "vitest";
-import { wrap, indexOf, shortestTarget, springStep, fitScale, visibility, counterText, smoothstep, laneOffset, laneDepth, wrapSym, laneVisibility, laneSwing } from "./math";
+import { wrap, indexOf, shortestTarget, springStep, fitScale, visibility, counterText, smoothstep, laneOffset, laneDepth, wrapSym, laneVisibility, masonry, cascadeDelay } from "./math";
 import { hourTint } from "./hour";
 
 const D = 1.3;
@@ -134,19 +134,6 @@ describe("a fila numa direção só, com o anterior atrás (VP-109, VP-111)", ()
     expect(laneVisibility(3, 22)).toBeLessThan(0.2);
     expect(laneVisibility(-2, 22)).toBeLessThan(0.1);
   });
-  it("VP-115: na troca, o que chega sobe e o que sai desce; nas pontas, nada", () => {
-    expect(laneSwing(0, false)).toBe(0); expect(laneSwing(1, false)).toBe(0); expect(laneSwing(-1, false)).toBe(0); expect(laneSwing(2, false)).toBe(0);
-    expect(laneSwing(0.5, false)).toBeGreaterThan(0); expect(laneSwing(-0.5, false)).toBeLessThan(0);
-  });
-  it("VP-115: no meio da troca (a mesma profundidade), os dois cartões de site não se tocam", () => {
-    const FOCUS = 3.35, H = 1.25;
-    for (const portrait of [false, true]) {
-      const dist = FOCUS + laneDepth(0.5) * D;
-      const yIn = (laneOffset(0.5, portrait).y + laneSwing(0.5, portrait)) * dist;
-      const yOut = (laneOffset(-0.5, portrait).y + laneSwing(-0.5, portrait)) * dist;
-      expect(yIn - H / 2).toBeGreaterThanOrEqual(yOut + H / 2 - 1e-9);
-    }
-  });
   it("com poucos cartões, ninguém troca de lado à vista (some antes da volta)", () => {
     for (const n of [4, 5, 6]) {
       expect(laneVisibility(n / 2, n)).toBe(0);
@@ -159,4 +146,34 @@ describe("a cor da hora (VP-17)", () => {
   const at = (h: number) => { const d = new Date(Date.UTC(2026, 9, 16, (h + 3) % 24, 0)); return hourTint(d); };
   it("de dia é a cor das telas", () => { expect(at(12).amount).toBe(0); });
   it("à noite e no fim da tarde, a cor muda", () => { expect(at(23).amount).toBeGreaterThan(0.4); expect(at(18).amount).toBeGreaterThan(0.2); });
+});
+
+describe("a cascata (VP-126)", () => {
+  it("cada cartão vai para a coluna mais curta, na ordem", () => {
+    const m = masonry([1, 1, 1, 1], 2, 1, 0.1);
+    expect(m.items.map((i) => i.col)).toEqual([0, 1, 0, 1]);
+    expect(m.items[0].y).toBeCloseTo(0.5); expect(m.items[2].y).toBeCloseTo(1.6);
+    expect(m.width).toBeCloseTo(2.1); expect(m.height).toBeCloseTo(2.1);
+  });
+  it("um cartão alto empurra os seguintes para a outra coluna", () => {
+    const m = masonry([0.25, 1, 1, 1], 2, 1, 0.1);
+    expect(m.items.map((i) => i.col)).toEqual([0, 1, 1, 1]);
+    expect(m.height).toBeCloseTo(4);
+  });
+  it("na mesma coluna, ninguém se sobrepõe; a grade fica centrada", () => {
+    const m = masonry([1.6, 0.7, 1.6, 0.71, 1.6, 1, 0.7, 1.6, 1.6], 4, 1.1, 0.12);
+    for (let c = 0; c < 4; c++) {
+      const col = m.items.filter((i) => i.col === c).sort((a, b) => a.y - b.y);
+      for (let i = 1; i < col.length; i++) expect(col[i].y - col[i].h / 2).toBeGreaterThanOrEqual(col[i - 1].y + col[i - 1].h / 2 + 0.12 - 1e-9);
+    }
+    const xs = m.items.map((i) => i.x);
+    expect(Math.min(...xs) + Math.max(...xs)).toBeCloseTo(0);
+  });
+  it("a ordem da queda: de cima para baixo, entre 0 e 1", () => {
+    const m = masonry([1, 1, 1, 1, 1, 1], 3, 1, 0.1);
+    const d = m.items.map((i) => cascadeDelay(i, m.height, 3));
+    expect(d[0]).toBe(0);
+    expect(d[3]).toBeGreaterThan(d[2]);
+    expect(Math.max(...d)).toBeLessThanOrEqual(1);
+  });
 });

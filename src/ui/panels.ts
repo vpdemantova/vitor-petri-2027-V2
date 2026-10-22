@@ -39,10 +39,17 @@
      abrevia o clip-path e a interpolação de texto do GSAP pulava, e o
      fechamento não encolhia); reaberto no meio do fechamento, o Índice e o
      Perfil continuam de onde estão, sem voltar ao começo.
+   Desde 22/out/2026 (VP-127, "a animação dos cards… meio fracos"): na ficha,
+   o título sobe letra a letra e os parágrafos linha a linha, cada um de
+   trás da sua máscara (o SplitText do GSAP, livre desde a 3.13); o
+   resto (função, tipo, o link) entra em cascata, e as outras imagens sobem
+   uma depois da outra. Ao passar de projeto, as linhas saem por cima e as
+   novas entram por baixo. No Perfil, o texto grande sobe linha a linha.
    Os três são diálogos de verdade (role="dialog", o Tab fica dentro, Esc
    fecha, o foco volta para onde estava). As animações são do GSAP.
 ════════════════════════════════════════════════════════════════════ */
 import gsap from "gsap";
+import { SplitText } from "gsap/SplitText";
 import { PROJECTS, CATEGORIES, aspectOf, hasImage, imageUrl, sizeOf, type Category, type Project } from "../content/projects";
 import { PROFILE, PROFILE_ART } from "../data/site";
 import { t, tx, tp, onLang } from "../core/i18n";
@@ -366,6 +373,44 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     profilePanel.style.clipPath = `inset(${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% round ${(40 * i).toFixed(2)}px)`;
   };
 
+  /* VP-127: o texto em máscaras. Os cortes são refeitos a cada abertura (a largura e a língua podem ter mudado) e
+     desfeitos ao fechar; só em elementos que a interface troca inteiros (os parágrafos, o título), para que desfazer um
+     corte velho nunca devolva um texto antigo */
+  gsap.registerPlugin(SplitText);
+  const splitsBy: Record<"project" | "profile", SplitText[]> = { project: [], profile: [] };
+  const unsplit = (k: "project" | "profile") => { for (const sp of splitsBy[k]) sp.revert(); splitsBy[k] = []; };
+  const linesOf = (k: "project" | "profile", root: Element, sel: string) => {
+    const out: Element[] = [];
+    for (const el of root.querySelectorAll(sel)) {
+      const sp = SplitText.create(el, { type: "lines", mask: "lines", linesClass: "split-line" });
+      splitsBy[k].push(sp);
+      out.push(...sp.lines);
+    }
+    return out;
+  };
+  const charsOf = (k: "project" | "profile", root: Element, sel: string) => {
+    const out: Element[] = [];
+    for (const el of root.querySelectorAll(sel)) {
+      const sp = SplitText.create(el, { type: "lines,chars", mask: "lines", linesClass: "split-line" });
+      splitsBy[k].push(sp);
+      out.push(...sp.chars);
+    }
+    return out;
+  };
+  /** a ficha entra: o título letra a letra, os parágrafos linha a linha, o resto em cascata, as outras imagens subindo */
+  const revealProject = (delay: number, skipFirstShot: boolean) => {
+    unsplit("project");
+    const title = charsOf("project", projectPanel, ".project-title");
+    const lines = linesOf("project", projectPanel, ".project-desc p, .project-process p");
+    gsap.fromTo(title, { yPercent: 108 }, { yPercent: 0, duration: 0.85, stagger: 0.018, delay, ease: "expo.out" });
+    gsap.fromTo(projectPanel.querySelectorAll(".project-meta dl > div, .project-visit, .project-player, .project-process h3"),
+      { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.045, delay: delay + 0.1, ease: "power3.out", clearProps: "transform,opacity" });
+    gsap.fromTo(lines, { yPercent: 108 }, { yPercent: 0, duration: 0.95, stagger: 0.04, delay: delay + 0.2, ease: "expo.out" });
+    gsap.fromTo(projectNav, { opacity: 0 }, { opacity: 1, duration: 0.6, delay: delay + 0.35, ease: "power2.out", clearProps: "opacity" });
+    const shots = [...projectPanel.querySelectorAll<HTMLElement>(".project-shots img")].slice(skipFirstShot ? 1 : 0);
+    gsap.fromTo(shots, { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 1.0, stagger: 0.09, delay: delay + 0.25, ease: "expo.out", clearProps: "transform,opacity" });
+  };
+
   const animIn = (kind: PanelKind, el: HTMLElement, fromQuad?: Quad | null, delay = 0, resume = false) => {
     const reduce = prefersReducedMotion();
     gsap.killTweensOf(el);
@@ -381,7 +426,12 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       gsap.set(el, { opacity: 1 });
       paintProfile();
       gsap.to(prof, { k: 1, duration: resume ? 0.7 : 1.0, delay: resume ? 0 : delay, ease: "expo.inOut", onUpdate: paintProfile, onComplete: () => { el.style.clipPath = ""; } });
-      gsap.fromTo(el.querySelectorAll(".profile-text p, .profile-art figure, .profile-aside"), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.07, delay: delay + 0.45, ease: "power3.out" });
+      /* VP-127: o texto grande sobe linha a linha; as peças e as duas linhas de baixo, em cascata */
+      if (!resume) {
+        unsplit("profile");
+        gsap.fromTo(linesOf("profile", el, ".profile-text p"), { yPercent: 108 }, { yPercent: 0, duration: 1.0, stagger: 0.05, delay: delay + 0.4, ease: "expo.out" });
+        gsap.fromTo(el.querySelectorAll(".profile-art figure, .profile-aside"), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.08, delay: delay + 0.55, ease: "power3.out" });
+      }
     } else if (fromQuad && shownProject) {
       /* VP-112: do cartão: o vidro cresce do retângulo dele e a própria imagem do cartão voa até o lugar dela na
          ficha (antes, crescia uma caixa branca vazia e a imagem só aparecia depois) */
@@ -389,17 +439,18 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       const shots = el.querySelector<HTMLElement>(".project-shots");
       const from = quadBox(fromQuad);
       gsap.fromTo(el, { clipPath: clipFrom(el, from) }, { clipPath: clipFull(el), duration: 0.9, ease: "expo.inOut", clearProps: "clipPath" });
-      gsap.fromTo(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.05, delay: 0.45, ease: "power3.out", clearProps: "transform" });
       const to = shotRect(p);
-      if (to && shots) {
-        gsap.set(shots, { opacity: 0 });
+      const first = shots?.querySelector<HTMLElement>("img") ?? null;
+      if (to && shots && first) {
+        /* só a primeira imagem espera o voo; as outras sobem em cascata (VP-127) */
+        gsap.set(first, { opacity: 0 });
         const c = flyClone(p);
-        fly(c, fromQuad, rectQuad(to), to.w, to.h, 0.9, () => { gsap.set(shots, { opacity: 1 }); gsap.to(c, { opacity: 0, duration: 0.15, onComplete: () => c.remove() }); });
-      } else if (shots) gsap.fromTo(shots, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 0.9, delay: 0.35, ease: "expo.out" });
+        fly(c, fromQuad, rectQuad(to), to.w, to.h, 0.9, () => { gsap.set(first, { opacity: 1 }); gsap.to(c, { opacity: 0, duration: 0.15, onComplete: () => c.remove() }); });
+        revealProject(0.42, true);
+      } else revealProject(0.42, false);
     } else {
       gsap.fromTo(el, { opacity: 0, scale: 0.94, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.85, delay, ease: "expo.out" });
-      gsap.fromTo(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.06, delay: delay + 0.2, ease: "power3.out", clearProps: "transform" });
-      gsap.fromTo(el.querySelector(".project-shots"), { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.9, delay: delay + 0.15, ease: "expo.out" });
+      revealProject(delay + 0.18, false);
     }
   };
   /** a saída; fast: na troca de um painel por outro, o que sai sai mais depressa (o outro entra depois) */
@@ -423,7 +474,8 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       const shots = el.querySelector<HTMLElement>(".project-shots");
       const fr = shotRect(p);
       const q0 = toQuad();
-      gsap.to(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, duration: 0.16 });
+      gsap.to(splitsBy.project.flatMap((sp) => (sp.chars.length ? sp.chars : sp.lines)), { yPercent: -108, duration: 0.24, stagger: 0.004, ease: "power2.in" });
+      gsap.to(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, duration: 0.22, delay: 0.04 });
       if (q0) gsap.fromTo(el, { clipPath: clipFull(el) }, { clipPath: clipFrom(el, quadBox(q0)), duration: 0.7, ease: "expo.inOut" });
       if (fr && shots && q0) {
         const c = flyClone(p);
@@ -449,7 +501,8 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       /* o painel pode ter sido aberto de novo enquanto saía: aí ele fica */
       if (current === kind) return;
       el.classList.remove("is-open");
-      gsap.set([el, ...el.querySelectorAll(".project-info > *, .project-shots")], { clearProps: "all" });
+      if (kind === "project" || kind === "profile") unsplit(kind);
+      gsap.set([el, ...el.querySelectorAll(".project-info > *, .project-shots, .project-shots img")], { clearProps: "all" });
       if (kind === "profile") prof.k = 0;
     }, to, fast);
   };
@@ -467,14 +520,19 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     gsap.killTweensOf(outEls);
     /* VP-118: a barra não sai: só os nomes dela trocam, num esmaecer rápido */
     gsap.to(projectNav.querySelectorAll(".project-step-name"), { opacity: 0, duration: 0.16, ease: "power2.in" });
+    /* VP-127: as letras e as linhas saem por cima, as imagens para o lado da fila */
+    gsap.to(splitsBy.project.flatMap((sp) => (sp.chars.length ? sp.chars : sp.lines)), { yPercent: -108, duration: 0.17, stagger: 0.003, ease: "power2.in" });
+    gsap.to(projectPanel.querySelector(".project-shots"), { opacity: 0, x: -36 * swapDir, duration: 0.2, ease: "power2.in" });
+    /* curta: o vidro não chega a ficar vazio (as novas linhas já começam a subir logo em seguida) */
     gsap.to(outEls, {
-      opacity: 0, x: -28 * swapDir, duration: 0.2, stagger: 0.012, ease: "power2.in",
+      opacity: 0, duration: 0.18, delay: 0.02, ease: "power1.in",
       onComplete: () => {
         const q = swapTo!;
         swapTo = null;
+        unsplit("project");
         fillProject(q);
-        const inEls = projectPanel.querySelectorAll(".project-info > *, .project-shots");
-        gsap.fromTo(inEls, { opacity: 0, x: 28 * swapDir }, { opacity: 1, x: 0, duration: 0.5, stagger: 0.03, ease: "power3.out", clearProps: "transform,opacity" });
+        gsap.fromTo(projectPanel.querySelector(".project-shots"), { opacity: 0, x: 36 * swapDir }, { opacity: 1, x: 0, duration: 0.7, ease: "expo.out", clearProps: "transform,opacity" });
+        revealProject(0, false);
         gsap.fromTo(projectNav.querySelectorAll(".project-step-name"), { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" });
         /* o foco fica no mesmo lado (quem anda pelo teclado continua andando) */
         projectPanel.querySelector<HTMLElement>(swapDir > 0 ? ".project-step.is-next" : ".project-step.is-prev")?.focus({ preventScroll: true });

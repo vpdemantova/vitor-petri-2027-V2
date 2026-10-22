@@ -30,6 +30,7 @@ No fim do endereço:
 - `?arrasto=1.3`, o arrasto mais sensível;
 - `?ref=3`, o modo comparação (as telas ficam em `ref/`, fora do git: ver a VP-94);
 - `?semvideo`, só as fotos nos cartões;
+- `?vista=cascata` ou `?vista=sala`, que abrem direto numa das vistas;
 - `?alternado`, os cartões de trás alternando os cantos, como antes da VP-109.
 
 ## O que tem
@@ -57,7 +58,7 @@ Endereços: `/index`, `/profile` e `/project/<id>`, e os mesmos em português co
 
 Teclado e acessibilidade:
 - as setas (ou PageUp e PageDown) passam de projeto, e Enter abre o da vez; na ficha, ← e → passam de ficha;
-- I, P, C, R, L e ? abrem o índice, o perfil, o contato, a sala, a língua e os atalhos (e S, o som, quando ele voltar);
+- I, P, C, V, R, L e ? abrem o índice, o perfil, o contato, as três vistas (V passa por elas), a sala, a língua e os atalhos (e S, o som, quando ele voltar);
 - os painéis são diálogos: o Tab fica dentro, Esc fecha e o foco volta para onde estava;
 - o primeiro Tab mostra "pular para o índice";
 - um leitor de tela ouve o nome do projeto da vez;
@@ -106,11 +107,13 @@ Diferenças em relação às telas:
   - **a rolagem:** persegue o alvo com uma **mola criticamente amortecida**. Parada, ela **encaixa** no cartão mais perto. A roda e o arrasto decidem (VP-108, `src/core/gesture.ts`): cada gesto anda pelo menos um cartão inteiro na direção dele, e nunca volta sozinho; o arrasto, ao soltar, desliza com o embalo da mão (VP-116: `GLIDE` em `src/core/gesture.ts`); na troca, o que chega passa por cima e o que sai por baixo, como numa roda (VP-115);
   - **a velocidade:** entra nos shaders. O cartão **dobra** e as cores **se separam** nas bordas; ao assentar, um **anel** sai do centro da imagem;
   - **os filtros:** a fila se refaz só com a categoria;
-  - **a sala:** a mesma fila, nas paredes de um corredor (no celular, o da vez sai da parede para o meio);
+  - **as três vistas** (VP-126, no pé: Fila · Sala · Cascata): a fila em profundidade; a sala, a mesma fila nas paredes de um corredor (no celular, o da vez sai da parede para o meio); e a **cascata**, uma grade em colunas (o masonry: cada cartão na coluna mais curta, na proporção dele) sobre o papel claro, com sombras, rolagem contínua de cima para baixo e os cartões descendo até ela um depois do outro (`masonry` e `cascadeDelay` em `src/gl/math.ts`; o papel em `src/gl/backdrop.ts`, e a página acompanha com `html.is-light`);
+  - **o brilho do vidro** (VP-127): um ponto de luz macio segue o mouse sobre o cartão (o ponto vem do raio que acha o cartão sob o mouse);
   - **os vídeos:** nos cartões com laço, uma segunda textura (`VideoTexture`) entra num fade sobre a foto quando a fila para; o vídeo só baixa quando o cartão vira a vez e pausa ao sair;
   - **os cantos:** arredondados pela distância até a borda, no próprio shader.
 - **O fundo** (`src/gl/backdrop.ts`): o brilho medido, com pontilhado contra os degraus de 8 bits. Na abertura, acende do centro para fora; depois, muda de tom com a hora de Campinas (`src/gl/hour.ts`) e puxa de leve para o tom do cartão da vez.
 - **O pós-processamento** (`src/gl/post.ts`): o bloom só com o gesto (baixo desde a VP-110: no máximo 0,16, só no quase branco) e um grão de filme fino.
+- **O texto que sobe de trás de máscaras** (VP-127): na ficha, o título letra a letra e os parágrafos linha a linha; no Perfil, o texto grande; com o SplitText do GSAP (livre desde a 3.13), refeito a cada abertura e desfeito ao fechar.
 - **As transições dos painéis** (VP-112, `src/ui/panels.ts`): a imagem do cartão voa até a ficha e volta (o cartão só reacende quando ela chega); de ficha para ficha, o conteúdo sai para um lado e entra pelo outro; um painel no lugar de outro espera o primeiro sair. Na sala, a etiqueta fica no meio de baixo (VP-113).
 - **As partículas da abertura** (`src/gl/particles.ts`): um compute shader em TSL (compute de verdade no WebGPU, transform feedback no WebGL2).
 - **Imagens fora da linha principal.** O `ImageBitmapLoader` decodifica com `createImageBitmap`, com mipmaps e filtro anisotrópico. Primeiro vêm os quatro cartões perto da vez; o resto chega depois. No celular, os cartões vêm em 800 px (`<nome>-m.webp`).

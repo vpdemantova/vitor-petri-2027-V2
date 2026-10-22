@@ -19,6 +19,8 @@
        lavanda de dia, mais quente no fim da tarde, mais fundo à noite;
      – o brilho puxa de leve para a cor do cartão da vez (VP-93).
      A hora entra no máximo com 20% e o cartão com 12%: a cor medida manda.
+   · VP-126 (22/out/2026): na cascata, o fundo vira papel claro (#f2f1ee),
+     com um lavanda bem leve no meio, onde ficava o brilho (setLight).
 ════════════════════════════════════════════════════════════════════ */
 import * as THREE from "three/webgpu";
 import { hourTint } from "./hour";
@@ -35,6 +37,8 @@ export function createBackdrop(scene: THREE.Scene, reduced: boolean) {
   const uHourAmt = uniform(0);
   const uCard = uniform(new THREE.Vector3(135 / 255, 142 / 255, 233 / 255));
   const uCardAmt = uniform(0);
+  /* VP-126: 0 = o brilho no escuro (a fila e a sala), 1 = o papel claro (a cascata) */
+  const uLight = uniform(0);
   /* ?hora=18 no endereço finge a hora (para conferir as cores) */
   const fake = new URLSearchParams(location.search).get("hora");
 
@@ -55,7 +59,10 @@ export function createBackdrop(scene: THREE.Scene, reduced: boolean) {
     const col = mix(withHour, uCard, uCardAmt);
     /* o pontilhado, em valores sRGB (meio degrau de 1/255 para cada lado) */
     const n = hash(screenCoordinate.x.add(screenCoordinate.y.mul(4099.0))).sub(0.5).div(255);
-    const srgb = clamp(col.mul(k).add(n), 0, 1);
+    /* VP-126: o papel, com o lavanda de leve no meio (na mesma elipse do brilho) */
+    const paper = vec3(0.949, 0.945, 0.933);
+    const lightCol = mix(paper, vec3(0.86, 0.87, 0.97), clamp(float(1).sub(r), 0, 1).mul(0.32));
+    const srgb = clamp(mix(col.mul(k), lightCol, uLight).add(n), 0, 1);
     /* a saída do renderizador converte de linear para sRGB: devolve linear */
     return sRGBTransferEOTF(srgb) as unknown as ReturnType<typeof vec3>;
   })();
@@ -80,6 +87,8 @@ export function createBackdrop(scene: THREE.Scene, reduced: boolean) {
     setMouse: (x: number, y: number) => uMouse.value.set(x, -y),
     /** 0…1: a abertura acende o brilho */
     setIntensity: (v: number) => { uIntensity.value = v; },
+    /** VP-126: 0…1: o quanto o fundo é o papel claro (a cascata) */
+    setLight: (v: number) => { uLight.value = v; },
     /** 0…1: até onde o brilho chegou (a abertura, do centro para fora) */
     setSpread: (v: number) => { uSpread.value = v; },
     /** a cor do cartão da vez e o quanto ela entra (até 0,12) */

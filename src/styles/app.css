@@ -230,7 +230,12 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 .project-panel .close { top: calc(26 * var(--u)); right: calc(44 * var(--u)); width: calc(44 * var(--u)); height: calc(44 * var(--u)); }
-.project-info { padding-top: calc(36 * var(--u)); padding-bottom: calc(28 * var(--u)); overflow: auto; scrollbar-width: none; }
+.project-info { grid-column: 1; grid-row: 1; padding-top: calc(36 * var(--u)); padding-bottom: calc(28 * var(--u)); overflow: auto; scrollbar-width: none; }
+/* VP-125: o texto que passa do fim da coluna se apaga antes da barra anterior / próximo (não é cortado seco); só no
+   computador: no celular a ficha rola inteira */
+@media (min-width: 761px) {
+  .project-info { -webkit-mask-image: linear-gradient(#000 calc(100% - 28 * var(--u)), transparent); mask-image: linear-gradient(#000 calc(100% - 28 * var(--u)), transparent); }
+}
 .project-title { margin: 0; font: 400 calc(45 * var(--u)) / 1.05 var(--f-sans); text-transform: uppercase; letter-spacing: 0.005em; }
 .project-meta { margin: calc(34 * var(--u)) 0 0; display: grid; grid-template-columns: auto 1fr; column-gap: calc(40 * var(--u)); row-gap: calc(14 * var(--u)); align-items: end; }
 .project-meta dl { margin: 0; display: grid; gap: calc(14 * var(--u)); }
@@ -243,7 +248,8 @@ a.label-name:hover .arrow { transform: translate(2px, -2px); }
 }
 .project-visit .arrow { width: calc(17 * var(--u)); height: calc(17 * var(--u)); }
 .project-visit.is-off { text-decoration: none; color: var(--muted); }
-.project-shots { overflow: auto; padding: calc(39 * var(--u)) 0 calc(28 * var(--u)); scrollbar-width: none; display: grid; gap: calc(20 * var(--u)); align-content: start; }
+/* VP-125: as imagens vão até o pé da ficha (a barra anterior / próximo fica só embaixo do texto) */
+.project-shots { grid-column: 2; grid-row: 1 / span 2; overflow: auto; padding: calc(39 * var(--u)) 0 calc(48 * var(--u)); scrollbar-width: none; display: grid; gap: calc(20 * var(--u)); align-content: start; }
 .project-shots::-webkit-scrollbar, .project-info::-webkit-scrollbar { display: none; }
 .project-shots img { display: block; width: 100%; height: auto; border-radius: 2px; background: rgba(255, 255, 255, 0.35); }
 .project-shots img.is-art { width: auto; max-width: 100%; max-height: 74vh; justify-self: center; box-shadow: 0 10px 40px rgba(20, 20, 40, 0.18); }
@@ -311,7 +317,9 @@ html.has-panel .foot { opacity: 0 !important; pointer-events: none; }
 .foot-btn:hover { background: rgba(196, 194, 255, 0.12); }
 .foot-btn[aria-pressed="true"] { background: var(--lavender); color: var(--ink); }
 /* as três barrinhas do som: paradas desligado, dançando ligado */
-.foot-room-i { display: none; }
+/* VP-126: as três vistas (fila, sala, cascata), juntas; no computador, as palavras; no celular, os desenhos */
+.foot-views { display: flex; gap: calc(2 * var(--u)); }
+.foot-view-i { display: none; }
 .foot-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 0.72em; }
 .foot-bars i { width: 2px; height: 30%; background: currentColor; border-radius: 1px; }
 .foot.is-sound .foot-bars i { animation: foot-bar 0.9s ease-in-out infinite alternate; }
@@ -405,11 +413,12 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
 .project-process { margin: 0 0 calc(30 * var(--u)); max-width: calc(440 * var(--u)); font: 400 calc(23 * var(--u)) / 1.45 var(--f-sans); color: #1d1d1d; }
 .project-process h3 { margin: 0 0 calc(12 * var(--u)); font: 400 calc(22 * var(--u)) / 1 var(--f-sans); text-transform: uppercase; color: #262626; }
 .project-process p { margin: 0 0 0.8em; }
-/* VP-118: a barra fixa no pé da ficha, de ponta a ponta: o anterior à esquerda, o próximo à direita, sempre no mesmo lugar */
+/* VP-118: a barra fixa no pé da ficha: o anterior à esquerda, o próximo à direita, sempre no mesmo lugar;
+   VP-125: só na largura da coluna do texto (não mais de ponta a ponta, por baixo das imagens) */
 .project-nav {
-  grid-column: 1 / -1; align-self: end;
-  display: grid; grid-template-columns: 1fr 1fr; gap: calc(40 * var(--u));
-  margin: 0; padding: calc(16 * var(--u)) 0 calc(26 * var(--u));
+  grid-column: 1; grid-row: 2; align-self: end;
+  display: grid; grid-template-columns: 1fr 1fr; gap: calc(28 * var(--u));
+  margin: 0; padding: calc(14 * var(--u)) 0 calc(30 * var(--u));
   border-top: max(1.5px, calc(2.4 * var(--u))) solid #2a2a2a;
 }
 .project-step { display: grid; gap: calc(6 * var(--u)); min-width: 0; padding: calc(6 * var(--u)) 0; text-decoration: none; color: var(--ink); }
@@ -498,15 +507,15 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
   .project-visit { font-size: 16px; }
   .project-visit .arrow { width: 11px; height: 11px; }
   .project-shots { overflow: visible; padding: 0 12px 16px; gap: 10px; }
-  /* VP-118: no celular, a ficha rola inteira e a barra fica presa no pé dela */
+  /* VP-118: no celular, a ficha rola inteira e a barra fica presa no pé dela; VP-125: uma linha fina, não um bloco */
   .project-nav {
     position: sticky; bottom: 0; z-index: 2; gap: 12px;
-    padding: 10px 20px calc(12px + env(safe-area-inset-bottom)); border-top-width: 1.5px;
-    background: rgba(236, 236, 244, 0.94); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    padding: 4px 20px calc(6px + env(safe-area-inset-bottom)); border-top-width: 1px;
+    background: rgba(236, 236, 244, 0.9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
-  .project-step { padding: 4px 0; min-height: 44px; align-content: center; }
-  .project-step-k { font-size: 11px; }
-  .project-step-name { font-size: 17px; }
+  .project-step { padding: 2px 0; min-height: 40px; align-content: center; gap: 2px; }
+  .project-step-k { font-size: 10px; }
+  .project-step-name { font-size: 15px; }
   .project-shots img.is-art { max-height: none; }
   .pre-coords { left: 16px; top: 76px; gap: 8px; }
   .pre-place { font-size: 15px; }
@@ -521,8 +530,9 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
   .foot-ctl { gap: 2px; }
   .foot-btn { min-height: 44px; min-width: 44px; justify-content: center; padding: 0 9px; font-size: 14px; }
   /* VP-96: a sala também no celular, só com o desenho */
-  .foot-room-t { display: none; }
-  .foot-room-i { display: inline-flex; }
+  .foot-view-t { display: none; }
+  .foot-view-i { display: inline-flex; }
+  .foot-views { gap: 0; }
   .foot-sound-t { display: none; }
   .foot-bars { height: 14px; gap: 3px; }
   .hint { bottom: 76px; font-size: 11px; gap: 10px; }
@@ -558,3 +568,30 @@ button.index-visit { padding: 0; border: 0; background: none; cursor: pointer; t
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* ── VP-126: a cascata muda o fundo para o papel claro ─────────────────
+   (html.is-light, posto por main.ts junto com a vista): o que era claro
+   sobre o escuro passa a escuro sobre o claro, numa transição macia. */
+body, .brand, .nav a, .foot, .foot-btn, .hint, .hint-b, .contact-pill { transition: color 0.7s var(--ease), background-color 0.7s var(--ease), box-shadow 0.7s var(--ease), opacity 0.3s; }
+html.is-light body { background: #f2f1ee; color: var(--ink); }
+html.is-light .brand, html.is-light .nav a { color: var(--ink); }
+html.is-light .foot, html.is-light .foot-btn { color: #34344a; }
+html.is-light .foot-btn:hover { background: rgba(20, 20, 50, 0.07); }
+html.is-light .foot-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+html.is-light .hint { color: var(--ink); }
+html.is-light .hint-b { color: #55559a; }
+html.is-light .hint-line { background: rgba(0, 0, 0, 0.18); }
+html.is-light .hint-line::after { background: var(--ink); }
+html.is-light .contact-pill { box-shadow: inset 0 0 0 max(1.5px, calc(2 * var(--u))) var(--ink); }
+html.is-light .cursor::before { border-color: var(--ink); }
+html.is-light .cursor[data-state="view"]::before { background: var(--ink); }
+html.is-light .cursor[data-state="go"]::before { background: rgba(0, 0, 0, 0.82); }
+html.is-light .cursor-label { color: var(--paper); }
+/* VP-126: na cascata, os cartões rolam por baixo do logotipo, do menu e do pé: um esmaecimento de papel no alto e no
+   pé deixa o texto da página limpo por cima deles (só no papel claro) */
+#app::before, #app::after {
+  content: ""; position: fixed; left: 0; right: 0; pointer-events: none; opacity: 0; transition: opacity 0.7s var(--ease);
+}
+#app::before { top: 0; height: max(120px, 17vh); z-index: 19; background: linear-gradient(#f2f1ee 42%, rgba(242, 241, 238, 0)); }
+#app::after { bottom: 0; height: max(96px, 13vh); z-index: 13; background: linear-gradient(rgba(242, 241, 238, 0), #f2f1ee 62%); }
+html.is-light #app::before, html.is-light #app::after { opacity: 1; }

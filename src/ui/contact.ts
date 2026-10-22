@@ -17,6 +17,8 @@
      (0 = a pílula, 1 = o cartão): o navegador abrevia o clip-path
      ("inset(0px round …)") e a interpolação de texto do GSAP pulava.
      Interrompível: abrir no meio do fechamento continua de onde está.
+   VP-127 (22/out/2026, "a animação dos cards… meio fracos"): o conteúdo entra
+   em cascata, uma linha e uma rede de cada vez, subindo, e o × entra girando.
 ════════════════════════════════════════════════════════════════════ */
 import gsap from "gsap";
 import { SITE } from "../data/site";
@@ -34,7 +36,9 @@ export function createContact(reduced: boolean) {
   const socials = h("ul", { class: "contact-socials" }, ...SITE.socials.map((s) => h("li", {}, h("a", { href: s.href, target: "_blank", rel: "noopener noreferrer" }, s.label))));
   const card = h("aside", { class: "contact-card", id: "contact-card" }, close, kick, mail, wa, socialsK, socials);
   /* o que entra e sai em cascata (o texto e o ×) */
-  const items = [kick, mail, wa, socialsK, socials, close];
+  /* o que entra e sai em cascata: cada linha e cada rede (VP-127), e o × à parte */
+  const items: HTMLElement[] = [kick, mail, wa, socialsK, ...(Array.from(socials.children) as HTMLElement[])];
+  const all = [...items, close];
   onLang(() => {
     pill.textContent = t("contact");
     card.setAttribute("aria-label", t("contact"));
@@ -67,30 +71,32 @@ export function createContact(reduced: boolean) {
     if (want === open) return;
     open = want;
     pill.setAttribute("aria-expanded", String(want));
-    gsap.killTweensOf([card, pill, morph, ...items]);
+    gsap.killTweensOf([card, pill, morph, ...all]);
     if (want) {
       const wasHidden = !card.classList.contains("is-open");
       card.classList.add("is-open");
       if (reduced) {
-        morph.k = 1; card.style.clipPath = ""; gsap.set(items, { clearProps: "opacity,transform" });
+        morph.k = 1; card.style.clipPath = ""; gsap.set(all, { clearProps: "opacity,transform" });
         gsap.set(pill, { opacity: 0, pointerEvents: "none" });
       } else {
         measure();
-        if (wasHidden) { morph.k = 0; gsap.set(items, { opacity: 0, y: 12 }); }
+        if (wasHidden) { morph.k = 0; gsap.set(items, { opacity: 0, y: 22 }); gsap.set(close, { opacity: 0, rotate: -90, scale: 0.6 }); }
         paint();
         /* a pílula fica por cima enquanto o nome dela some: o cartão cresce por baixo dela, da mesma cor */
         pill.classList.add("is-morph");
         gsap.to(pill, { opacity: 0, duration: 0.18, ease: "power1.out", onComplete: () => { pill.classList.remove("is-morph"); gsap.set(pill, { pointerEvents: "none" }); } });
         gsap.to(morph, { k: 1, duration: 0.78, ease: "expo.out", onUpdate: paint, onComplete: () => { card.style.clipPath = ""; } });
-        gsap.to(items, { opacity: 1, y: 0, duration: 0.55, stagger: 0.045, delay: 0.16, ease: "power3.out", clearProps: "transform" });
+        gsap.to(items, { opacity: 1, y: 0, duration: 0.75, stagger: 0.04, delay: 0.14, ease: "expo.out", clearProps: "transform" });
+        gsap.to(close, { opacity: 1, rotate: 0, scale: 1, duration: 0.7, delay: 0.3, ease: "expo.out", clearProps: "transform" });
       }
       mail.focus({ preventScroll: true });
     } else {
-      const done = () => { card.classList.remove("is-open"); card.style.clipPath = ""; morph.k = 0; gsap.set(items, { clearProps: "opacity,transform" }); };
+      const done = () => { card.classList.remove("is-open"); card.style.clipPath = ""; morph.k = 0; gsap.set(all, { clearProps: "opacity,transform" }); };
       if (reduced) { done(); gsap.set(pill, { opacity: 1, pointerEvents: "auto" }); }
       else {
         measure(); paint();
-        gsap.to(items, { opacity: 0, y: 6, duration: 0.16, stagger: 0.015, ease: "power2.in" });
+        gsap.to([...items].reverse(), { opacity: 0, y: -10, duration: 0.18, stagger: 0.012, ease: "power2.in" });
+        gsap.to(close, { opacity: 0, rotate: 90, scale: 0.7, duration: 0.2, ease: "power2.in" });
         gsap.to(morph, { k: 0, duration: 0.55, delay: 0.08, ease: "expo.inOut", onUpdate: paint, onComplete: done });
         /* no fim do caminho, a pílula volta por cima, já no lugar */
         pill.classList.add("is-morph");

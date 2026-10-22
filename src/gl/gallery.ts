@@ -21,13 +21,21 @@
    olha para onde a fila vem e inclina de leve) e os de lado viram para o
    meio, como numa vitrine. O brilho do movimento ficou bem mais baixo
    (VP-110).
-   Desde 21/out/2026, à noite (VP-115 e VP-116, "as animações estão bem
-   ruins ainda… diminua o freio"): na troca, o que chega passa por cima e o
-   que sai passa por baixo, como numa roda (laneSwing): antes, os dois se
-   sobrepunham no instante em que um passava à frente do outro, e a troca
-   aparecia como um estalo. A câmera não anda mais com a rolagem (balançava
-   a cena inteira); fica só a paralaxe do mouse. O freio é mais macio, e o
-   arrasto, ao soltar, continua deslizando com o embalo da mão (glide).
+   Desde 21/out/2026, à noite (VP-116, "diminua o freio"): o arrasto, ao
+   soltar, continua deslizando com o embalo da mão (glide).
+   22/out/2026 (VP-124, "a animação da galeria estava perfeita..! agora
+   está meio estranha"): o movimento voltou ao de 21/out de manhã, o que
+   ele aprovou. Saiu o arco da troca (VP-115: o que chegava subia e o que
+   saía descia), voltou a câmera que anda junto e a mola de antes.
+   22/out/2026 (VP-126, "coloque um modo cascata… três tipos de views, e
+   essa nova muda o fundo"): a terceira vista, a CASCATA. Os mesmos
+   cartões descem, um depois do outro, de cima para baixo, até uma grade
+   em colunas (o "masonry": cada um na coluna mais curta, na proporção
+   dele), sobre o papel claro; a rolagem é contínua, de cima para baixo, e
+   dobra os cartões na vertical; sob o mouse, o cartão chega mais perto e
+   a sombra cresce. As contas estão em gl/math.ts (masonry, cascadeDelay).
+   VP-127: o brilho do vidro sob o mouse (um ponto de luz que segue o
+   ponteiro sobre o cartão), nas três vistas.
 
    A FÍSICA da rolagem: a entrada soma no alvo; a posição persegue o alvo
    com uma mola criticamente amortecida; parada, encaixa no cartão mais
@@ -71,7 +79,7 @@ import {
 } from "three/tsl";
 import { PROJECTS, aspectOf, colorOf, hasImage, imageUrl, videoUrl, type Category, type Project } from "../content/projects";
 import { drawCover, loadCoverFonts } from "../ui/musiccard";
-import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility, laneOffset, laneDepth, laneVisibility, wrapSym, laneSwing, LANE } from "./math";
+import { wrap, smoothstep as ss, easeOut, damp, clamp as clampJS, indexOf, shortestTarget, springStep, fitScale, visibility, laneOffset, laneDepth, laneVisibility, wrapSym, masonry, cascadeDelay, LANE } from "./math";
 
 export const D = 1.3;        // metros entre um cartão e o próximo (o de trás fica com ~75% do tamanho, como nas telas)
 export const FOCUS = 3.35;   // a distância do cartão da vez até a câmera
@@ -82,6 +90,12 @@ const DR = 1.75;             // metros entre um cartão e o próximo no corredor
 const ZR = 5.2;              // a distância, no corredor, até o cartão da vez
 const WR = 1.6;              // metade da largura do corredor
 const FLOOR = -1.18;         // a altura do chão
+/* a cascata (VP-126) */
+const ZC = 6.2;              // a distância da grade até a câmera
+const CAS_TIME = 1.6;        // segundos, do primeiro cartão a sair da fila até o último chegar à grade
+const CAS_STAGGER = 0.8;     // o quanto as chegadas se espalham nesse tempo (0 = todos juntos)
+/** o easing de cada cartão na queda (o "smootherstep": parte e chega devagar) */
+const smoother = (x: number) => x * x * x * (x * (x * 6 - 15) + 10);
 
 /* ?alternado (o desenho de 16/out, antes da VP-109): para onde cada cartão "foge" quando não é a
    vez dele (x, y em metros), em cima à direita e embaixo à esquerda, alternando */
@@ -94,6 +108,10 @@ const makeUniforms = () => ({
   wave: uniform(1), blur: uniform(0), size: uniform(new THREE.Vector2(2, 1.25)), radius: uniform(0),
   /** VP-95: 0 = a foto, 1 = o vídeo */
   video: uniform(0),
+  /** VP-126: a dobra e as cores separadas na vertical (a cascata rola de cima para baixo) */
+  bendY: uniform(0),
+  /** VP-127: o brilho do vidro sob o mouse: o ponto, na imagem, e quanto */
+  glare: uniform(new THREE.Vector2(0.5, 0.5)), glareAmt: uniform(0),
 });
 type Uniforms = ReturnType<typeof makeUniforms>;
 
@@ -120,6 +138,15 @@ interface Card {
 }
 
 export type Filter = Category | "all";
+/** VP-126: as três vistas */
+export type View = "queue" | "room" | "cascade";
+interface CascadeLayout {
+  key: string;
+  items: { col: number; x: number; y: number; w: number; h: number }[];
+  delay: number[];
+  /** a altura, na tela, do alto da grade (sem rolagem), a meia altura visível e o quanto ela rola */
+  top: number; hh: number; maxCy: number;
+}
 
 export interface Gallery {
   update: (dt: number) => void;
@@ -159,6 +186,17 @@ export interface Gallery {
   setHidden: (index: number | null, instant?: boolean) => void;
   setRoom: (on: boolean) => void;
   room: () => boolean;
+  /** VP-126: as três vistas: a fila, a sala e a cascata */
+  setView: (v: View) => void;
+  view: () => View;
+  /** 0…1: o quanto a cascata está à vista */
+  cascade: () => number;
+  /** 0…1: o quanto o fundo é o papel claro (muda logo no começo da troca, para a página e o fundo mudarem juntos) */
+  light: () => number;
+  /** VP-126: a cascata rola (pixels da tela; positivo = descer) */
+  scrollBy: (px: number) => void;
+  /** VP-126: o arrasto da cascata, ao soltar: o embalo (pixels por segundo) */
+  fling: (pxPerSec: number) => void;
   /** a velocidade da rolagem (0…1), para o brilho do pós-processamento e o som */
   speed: () => number;
   /** a cor do cartão da vez (VP-93) */
@@ -198,7 +236,10 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     mat.positionNode = Fn(() => {
       const p = positionLocal.toVar();
       const q = uv();
-      const bend = sin(q.x.mul(Math.PI)).mul(u.vel).mul(0.32).add(sin(q.y.mul(Math.PI)).mul(u.vel).mul(0.08));
+      /* VP-126: na cascata, a dobra é na vertical (ela rola de cima para baixo) */
+      const bendX = sin(q.x.mul(Math.PI)).mul(0.32).add(sin(q.y.mul(Math.PI)).mul(0.08));
+      const bendV = sin(q.y.mul(Math.PI)).mul(0.26);
+      const bend = mix(bendX, bendV, u.bendY).mul(u.vel);
       p.z.addAssign(bend.add(sin(q.x.mul(Math.PI)).mul(float(1).sub(u.reveal)).mul(-0.6)));
       return p;
     })();
@@ -214,8 +255,9 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       const ring = exp(dist.sub(front).pow(2).negate().div(0.006)).mul(float(1).sub(u.wave));
       q.addAssign(normalize(c.add(vec2(1e-5, 0))).div(vec2(asp, 1)).mul(ring).mul(0.022));
       q.addAssign(0.5);
-      const edge = abs(q.x.sub(0.5)).mul(2);
-      const shift = vec2(clamp(u.vel, -1, 1).mul(0.012).mul(edge.add(0.25)), 0);
+      const edge = mix(abs(q.x.sub(0.5)), abs(q.y.sub(0.5)), u.bendY).mul(2);
+      const amt = clamp(u.vel, -1, 1).mul(0.012).mul(edge.add(0.25));
+      const shift = vec2(amt.mul(float(1).sub(u.bendY)), amt.mul(u.bendY));
       const r = map.sample(q.add(shift)).bias(u.blur).r;
       const g = map.sample(q).bias(u.blur).g;
       const b = map.sample(q.sub(shift)).bias(u.blur).b;
@@ -223,6 +265,9 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       const col = vec3(r, g, b).mul(float(1).add(ring.mul(0.07))).toVar();
       /* VP-95: o vídeo entra por cima da foto (só toca parado, então sem a separação das cores) */
       if (vmap) col.assign(mix(col, vmap.sample(q).rgb, u.video));
+      /* VP-127: o brilho do vidro, um ponto de luz macio que segue o mouse sobre o cartão */
+      const gd = length(uv().sub(u.glare).mul(vec2(asp, 1)));
+      col.addAssign(vec3(1, 1, 1).mul(exp(gd.mul(gd).negate().div(0.06)).mul(u.glareAmt).mul(0.16)));
       /* longe, mais escuro (como os cartões de trás nas telas) */
       return vec4(mix(col, vec3(0.02, 0.02, 0.05), u.dim), 1);
     })();
@@ -248,6 +293,26 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
       card.cover = { canvas, tex };
     }
     return card;
+  });
+
+  /* VP-126: as sombras da cascata (no papel claro, um cartão sem sombra parece um adesivo): um plano maior atrás de
+     cada cartão, com a borda desfocada; só aparecem na cascata */
+  const shadowGeo = new THREE.PlaneGeometry(1, 1);
+  const shadows = cards.map(() => {
+    const su = { size: uniform(new THREE.Vector2(1, 1)), pad: uniform(0.2), alpha: uniform(0) };
+    const m = new THREE.MeshBasicNodeMaterial({ transparent: true, depthWrite: false });
+    m.colorNode = vec3(0.05, 0.05, 0.13);
+    m.opacityNode = Fn(() => {
+      const full = su.size.add(su.pad.mul(2));
+      const p = uv().sub(0.5).mul(full);
+      const q = abs(p).sub(su.size.mul(0.5));
+      const d = length(max(q, 0)).add(min(max(q.x, q.y), 0));
+      return su.alpha.mul(smoothstep(su.pad, su.pad.mul(-0.4), d)).mul(0.26);
+    })();
+    const mesh = new THREE.Mesh(shadowGeo, m);
+    mesh.renderOrder = -1000; mesh.visible = false; mesh.frustumCulled = false;
+    group.add(mesh);
+    return { mesh, u: su };
   });
 
   /* ── a sala: o chão e as duas paredes (VP-91) ── */
@@ -295,10 +360,19 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
   /* VP-111: o alvo que a mola persegue segue o alvo de verdade com um atraso curto: o movimento arranca
      suave em vez de dar um tranco (o arrasto move os dois juntos, então continua direto na mão) */
   let follow = 0;
-  /* VP-116: a rigidez da mola; no deslize, ela é escolhida para a fila chegar ao alvo só com o embalo, sem voltar */
-  const STIFF = 30;
+  /* a rigidez da mola (a de 9e85db6, VP-124); no deslize (VP-116), ela é escolhida para a fila chegar ao alvo só com o
+     embalo, sem voltar */
+  const STIFF = 46;
   let glideK = 0;
-  let roomOn = false, room = 0;
+  /* VP-126: a vista (?vista=cascata ou ?vista=sala no endereço, para conferir), a cascata entrando (0…1), a rolagem
+     dela (metros, na grade) e o da vez nela */
+  const q0 = new URLSearchParams(location.search).get("vista");
+  let view: View = q0 === "cascata" ? "cascade" : q0 === "sala" ? "room" : "queue";
+  let roomOn = view === "room", room = roomOn ? 1 : 0;
+  let cas = view === "cascade" ? 1 : 0, lightV = cas;
+  let cy = 0, cyTarget = 0, cyVel = 0, activeC = 0;
+  let cl: CascadeLayout | null = null;
+  const hoverUV = new THREE.Vector2(0.5, 0.5);
   const pointer = new THREE.Vector2();
   const camGoal = new THREE.Vector3();
   const look = new THREE.Vector3(0, 0, -FOCUS);
@@ -307,6 +381,8 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
   const settleSubs: ((i: number) => void)[] = [];
   const tint = new THREE.Color("#878ee9"), tmpC = new THREE.Color();
   const tmpV = new THREE.Vector3();
+  /* VP-111: a inclinação da câmera com o movimento (radianos) */
+  let bank = 0;
 
 
   const applyOrder = (f: Filter) => {
@@ -352,10 +428,50 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     if (!want && card.vmix < 0.01 && !v.el.paused) v.el.pause();
   };
 
+  /* VP-126: a grade da cascata, refeita quando muda a fila, o filtro ou a proporção da tela */
+  const layoutCascade = () => {
+    const aspect = camera.aspect || 1.6;
+    const narrow = aspect < 0.75;
+    const cols = narrow ? 2 : aspect < 1.25 ? 3 : 4;
+    const key = `${N}|${cols}|${aspect.toFixed(3)}|${order.join(".")}`;
+    if (cl && cl.key === key) return;
+    const hh = ZC * Math.tan((camera.fov * Math.PI) / 360), vw = 2 * hh * aspect;
+    const side = narrow ? 0.06 : 0.12, gap = vw * (narrow ? 0.035 : 0.022);
+    const colW = (vw * (1 - 2 * side) - (cols - 1) * gap) / cols;
+    const m = masonry(order.map((i) => cards[i].w / cards[i].h), cols, colW, gap);
+    /* o alto da grade fica abaixo do logotipo e do menu; no fim da rolagem, o pé dela acima do pé da página */
+    const top = hh * (narrow ? 0.74 : 0.66), bottom = hh * (narrow ? 0.3 : 0.24);
+    const maxCy = Math.max(0, m.height - top - hh + bottom);
+    cl = { key, items: m.items, delay: m.items.map((it) => cascadeDelay(it, m.height, cols)), top, hh, maxCy };
+    cyTarget = clampJS(cyTarget, 0, maxCy); cy = clampJS(cy, 0, maxCy);
+  };
+  /** a rolagem que põe o cartão da posição s no meio da tela */
+  const cascadeTo = (s: number) => (cl && cl.items[s] ? clampJS(cl.items[s].y - cl.top, 0, cl.maxCy) : 0);
+
+  const setViewImpl = (v: View) => {
+    if (v === view) return;
+    const was = view;
+    view = v;
+    roomOn = v === "room";
+    idle = 0.5;
+    if (v === "cascade") {
+      layoutCascade();
+      /* a grade abre já rolada até o cartão que estava na vez: ele cai perto do meio da tela */
+      const s = indexOf(pos, N);
+      activeC = order[s];
+      cy = cyTarget = cascadeTo(s);
+    } else if (was === "cascade") {
+      /* de volta à fila (ou à sala): ela continua do cartão que se via na cascata */
+      const s = Math.max(0, order.indexOf(activeC));
+      target = pos = follow = s; vel = 0; glideK = 0; settled = -1;
+    }
+  };
+
   const update = (dt: number) => {
     const fit = fitScale(camera.aspect || 1.6, camera.fov, SITE_W, FOCUS);
     k = fit.k; portrait = fit.portrait;
     uK.value = k;
+    layoutCascade();
 
     /* a troca de filtro */
     if (filterDir === -1) {
@@ -377,6 +493,25 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
        a VP-108, e a velocidade de cada passo chegava perto do máximo) */
     const speed = reduced ? 0 : clampJS(vel * 0.2, -1, 1);
 
+    /* VP-126: a cascata entra e sai num tempo certo (CAS_TIME); cada cartão cai no seu momento, de cima para baixo;
+       a rolagem dela persegue o alvo macio, como uma página */
+    const casGoal = view === "cascade" ? 1 : 0;
+    cas = reduced ? casGoal : cas + Math.sign(casGoal - cas) * Math.min(Math.abs(casGoal - cas), dt / CAS_TIME);
+    lightV = damp(lightV, casGoal, reduced ? 60 : 5, dt);
+    const cyBefore = cy;
+    cy = damp(cy, cyTarget, reduced ? 60 : 10, dt);
+    cyVel = dt > 0 ? (cy - cyBefore) / dt : 0;
+    if (cl && cas > 0) {
+      /* o da vez na cascata: o que está sob o mouse ou, sem mouse em cima, o mais perto do meio da tela */
+      let best = 0, bd = Infinity;
+      for (let si = 0; si < N; si++) {
+        const it = cl.items[si];
+        const d = Math.abs(cl.top - it.y + cy) + Math.abs(it.x) * 0.25;
+        if (d < bd) { bd = d; best = si; }
+      }
+      activeC = hovered !== null && cards[hovered].slot >= 0 ? hovered : order[best];
+    }
+
     /* a sala entra e sai devagar */
     room = damp(room, roomOn ? 1 : 0, reduced ? 60 : 2.6, dt);
     const R = room * room * (3 - 2 * room);
@@ -384,10 +519,15 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
 
     /* a câmera: um pouco de paralaxe com o mouse; na fila olha o foco, na sala, o fundo do corredor */
     const par = reduced ? 0 : 1;
-    /* VP-115: a câmera não anda com a rolagem (na VP-111 ela recuava, olhava e inclinava, e a cena inteira balançava) */
-    camGoal.set(pointer.x * 0.22 * par * k * (1 - R * 0.6), pointer.y * 0.14 * par * k * (1 - R * 0.5), 0);
+    /* VP-111 (de volta na VP-124): na fila, a câmera acompanha o movimento: recua um pouco (vê mais da fila), olha
+       para o lado de onde os cartões vêm e inclina de leve, como quem anda junto; parada, volta ao lugar. Na sala e no
+       ?alternado, não. */
+    const sv = reduced || ALTERNATE ? 0 : clampJS(vel * 0.25, -1, 1) * (1 - R);
+    camGoal.set(pointer.x * 0.22 * par * k * (1 - R * 0.6), pointer.y * 0.14 * par * k * (1 - R * 0.5), Math.abs(sv) * 0.5 * k);
     camera.position.lerp(camGoal, 1 - Math.exp(-dt * 3.5));
-    look.set(0, 0, -FOCUS * k).lerp(tmpV.set(pointer.x * 0.5 * par * k, -0.05 * k, -12 * k), R);
+    look.set(sv * LANE.x * FOCUS * 0.3 * k, sv * LANE.y * FOCUS * 0.3 * k, -FOCUS * k).lerp(tmpV.set(pointer.x * 0.5 * par * k, -0.05 * k, -12 * k), R);
+    bank = damp(bank, -sv * 0.025, 6, dt);
+    camera.up.set(Math.sin(bank), Math.cos(bank), 0);
     camera.lookAt(look);
 
     /* o chão e as paredes, presos à câmera no eixo do corredor */
@@ -400,6 +540,10 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
 
     const L = N * D, LR = N * DR;
     const act = indexOf(pos, N);
+    /* VP-126: o da vez e "parado" valem para a fila ou para a cascata, conforme a vista */
+    const inCascade = cas > 0.5;
+    const activeIdx = inCascade ? activeC : order[act];
+    const still = inCascade ? cas >= 1 && Math.abs(cyVel) < 0.06 && Math.abs(cyTarget - cy) < 0.01 : Math.abs(vel) < 0.05 && Math.abs(target - pos) < 0.03;
     for (const card of cards) {
       const s = card.slot;
       if (s < 0) { card.mesh.visible = false; card.u.alpha.value = 0; continue; }
@@ -435,13 +579,17 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
         const lane = laneOffset(u, portrait);
         const dist = FOCUS + back;
         const narrow = Math.sign(u) * Math.max(0, (SITE_W - card.w) * 0.5) * (portrait ? 0.3 : 1) * Math.min(1, Math.abs(u));
-        qx = (lane.x * dist + narrow) * k; qy = (lane.y + laneSwing(u, portrait)) * dist * k;
+        qx = (lane.x * dist + narrow) * k; qy = lane.y * dist * k;
         qrx = LANE.rx * lane.t - pointer.y * tilt; qry = LANE.ry * lane.t + pointer.x * tilt;
       }
       let alphaQ = (ALTERNATE ? visibility(rel, L, D, N) : laneVisibility(rel / D, N)) * easeOut(rv);
 
       /* a sala: os cartões nas paredes, alternando os lados */
       let px = qx, py = qy, pz = qz, rx = qrx, ry = qry;
+      let dimV = clampJS(back / (D * 3.4), 0, 0.55);
+      /* VP-34: o desfoque começa no primeiro de trás e cresce até ~1,6 degrau de mipmap (VP-111: dos dois lados) */
+      let blurV = reduced ? 0 : clampJS((back - D * 0.5) / D, 0, 1.6);
+      let depthOrder = back;
       if (R > 0.001) {
         const relR = wrap(s * DR - pos * DR, LR, DR, N);
         const side = s % 2 === 0 ? -1 : 1;
@@ -461,43 +609,87 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
            (antes, o esmaecimento acompanhava o caminho inteiro, e o cartão atravessava a tela como um fantasma) */
         const kk = alphaR < alphaQ ? ss(0, 0.3, R) : ss(0.55, 1, R);
         alphaQ = mix1(alphaQ, alphaR, kk);
-        card.u.dim.value = mix1(clampJS(back / (D * 3.4), 0, 0.55), clampJS(relR / (DR * 9), 0, 0.6), R);
-        card.u.blur.value = reduced ? 0 : mix1(clampJS((back - D * 0.5) / D, 0, 1.6), clampJS((relR - DR) / (DR * 4), 0, 1.4), R);
-      } else {
-        card.u.dim.value = clampJS(back / (D * 3.4), 0, 0.55);
-        /* VP-34: o desfoque começa no primeiro de trás e cresce até ~1,6 degrau de mipmap (VP-111: dos dois lados) */
-        card.u.blur.value = reduced ? 0 : clampJS((back - D * 0.5) / D, 0, 1.6);
+        dimV = mix1(dimV, clampJS(relR / (DR * 9), 0, 0.6), R);
+        blurV = reduced ? 0 : mix1(blurV, clampJS((relR - DR) / (DR * 4), 0, 1.4), R);
+        depthOrder = mix1(back, relR, R);
       }
+      /* a escala: a do cartão, um pouco maior sob o mouse */
+      const sc = 1 + card.hover * 0.025;
+      let sx = card.w * sc, sy = card.h * sc;
+      let velV = speed * (1 - R * 0.7);
+
+      /* VP-126: a cascata. Cada cartão cai no seu lugar da grade no seu tempo (de cima para baixo), endireita, fica
+         com a largura da coluna e acende; sob o mouse, chega um pouco mais perto e inclina com ele */
+      let cc = 0;
+      if (cas > 0 && cl && cl.items[s]) {
+        const it = cl.items[s];
+        cc = reduced ? cas : smoother(clampJS(cas * (1 + CAS_STAGGER) - CAS_STAGGER * cl.delay[s], 0, 1));
+        if (cc > 0) {
+          const hv = card.hover, tiltC = reduced ? 0 : hv * 0.07;
+          px = mix1(px, it.x, cc);
+          py = mix1(py, cl.top - it.y + cy, cc);
+          pz = mix1(pz, -ZC + hv * 0.16, cc);
+          rx = mix1(rx, (reduced ? 0 : clampJS(-cyVel * 0.018, -0.14, 0.14)) - pointer.y * tiltC, cc);
+          ry = mix1(ry, pointer.x * tiltC, cc);
+          /* quem não estava à vista na fila aparece no fim da queda (não atravessa a tela transparente) */
+          alphaQ = mix1(alphaQ, easeOut(rv), alphaQ >= 0.999 ? cc : ss(0.55, 1, cc));
+          dimV = mix1(dimV, 0, cc); blurV = mix1(blurV, 0, cc);
+          const scC = 1 + hv * 0.03;
+          sx = mix1(sx, it.w * scC, cc); sy = mix1(sy, it.h * scC, cc);
+          velV = mix1(velV, reduced ? 0 : clampJS((cyVel / (2 * cl.hh)) * 0.4, -1, 1), cc);
+          depthOrder = mix1(depthOrder, -hv * 2, cc);
+        }
+      }
+      card.u.dim.value = dimV;
+      card.u.blur.value = blurV;
+      card.u.bendY.value = cc;
       card.mesh.position.set(px, py, pz);
       card.mesh.rotation.set(rx, ry, 0);
 
       /* a ficha aberta esconde o cartão que virou ficha */
       card.hide = damp(card.hide, hidden === card.index ? 1 : 0, reduced ? 60 : 9, dt);
       card.u.alpha.value = alphaQ * filterFade * (1 - card.hide);
-      /* VP-95: o laço toca no da vez, com a fila parada, depois da abertura e sem a ficha por cima */
-      videoFrame(card, card.index === order[act] && Math.abs(vel) < 0.05 && Math.abs(target - pos) < 0.03 && reveal > 0.99 && card.hide < 0.01 && filterDir === 0, dt);
-      card.u.vel.value = speed * (1 - R * 0.7);
+      /* VP-95: o laço toca no da vez, parado, depois da abertura e sem a ficha por cima (na cascata, o que está sob o
+         mouse ou no meio da tela) */
+      videoFrame(card, card.index === activeIdx && still && reveal > 0.99 && card.hide < 0.01 && filterDir === 0, dt);
+      card.u.vel.value = velV;
       card.u.reveal.value = rv;
       card.hover = damp(card.hover, hovered === card.index ? 1 : 0, 8, dt);
       card.u.hover.value = card.hover;
+      /* VP-127: o brilho do vidro segue o mouse sobre o cartão */
+      if (hovered === card.index) card.u.glare.value.lerp(hoverUV, 1 - Math.exp(-dt * 16));
+      card.u.glareAmt.value = card.hover;
       /* a onda */
       if (card.waveT < 1) { card.waveT = Math.min(1, card.waveT + dt / 1.15); card.u.wave.value = card.waveT; }
-      const sc = 1 + card.hover * 0.025;
-      card.mesh.scale.set(card.w * sc, card.h * sc, 1);
+      card.mesh.scale.set(sx, sy, 1);
       card.mesh.visible = card.u.alpha.value > 0.002;
       /* de trás para a frente */
-      card.mesh.renderOrder = -Math.round(mix1(back, wrap(s * DR - pos * DR, LR, DR, N), R) * 10);
+      card.mesh.renderOrder = -Math.round(depthOrder * 10);
+
+      /* VP-126: a sombra, só na cascata (cresce e se afasta quando o cartão chega mais perto, sob o mouse) */
+      const sh = shadows[card.index];
+      const sa = card.u.alpha.value * cc;
+      sh.u.alpha.value = sa;
+      sh.mesh.visible = sa > 0.002;
+      if (sh.mesh.visible) {
+        const pad = 0.16 + card.hover * 0.1;
+        sh.u.pad.value = pad;
+        sh.u.size.value.set(sx, sy);
+        sh.mesh.scale.set(sx + pad * 2, sy + pad * 2, 1);
+        sh.mesh.position.set(px, py - 0.045 - card.hover * 0.07, pz - 0.03);
+        sh.mesh.rotation.set(rx, ry, 0);
+      }
     }
 
     /* assentou num cartão novo: a onda e quem quiser saber (o som) */
     const vi = order[act];
-    if (Math.abs(vel) < 0.05 && Math.abs(target - pos) < 0.02 && vi !== settled && filterDir === 0) {
+    if (!inCascade && Math.abs(vel) < 0.05 && Math.abs(target - pos) < 0.02 && vi !== settled && filterDir === 0) {
       if (settled !== -1 && !reduced) { cards[vi].waveT = 0; }
       settled = vi;
       for (const fn of settleSubs) fn(vi);
     }
     /* a cor do brilho (VP-93) persegue a do cartão da vez */
-    tmpC.set(colorOf(cards[vi].project));
+    tmpC.set(colorOf(cards[activeIdx].project));
     tint.lerp(tmpC, 1 - Math.exp(-dt * 1.6));
   };
 
@@ -507,6 +699,7 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     ndc.set(x, y);
     raycaster.setFromCamera(ndc, camera);
     const hits = raycaster.intersectObjects(cards.filter((c) => c.mesh.visible && c.u.alpha.value > 0.5).map((c) => c.mesh), false);
+    if (hits.length && hits[0].uv) hoverUV.copy(hits[0].uv);
     return hits.length ? (hits[0].object.userData.index as number) : null;
   };
 
@@ -554,7 +747,11 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     update,
     nudge: (n) => { target += n; follow += n; idle = 0; glideK = 0; },
     /* idle acima de 0,18 s: o ímã fica ligado, e o alvo já é um cartão inteiro, então ele não puxa para trás */
-    step: (n) => { target = Math.round(target) + n; idle = 0.5; glideK = 0; },
+    step: (n) => {
+      /* VP-126: na cascata, as setas descem e sobem meia tela */
+      if (view === "cascade" && cl) { cyTarget = clampJS(cyTarget + n * cl.hh, 0, cl.maxCy); return; }
+      target = Math.round(target) + n; idle = 0.5; glideK = 0;
+    },
     target: () => target,
     settle: (to) => { target = Math.round(to); idle = 0.5; glideK = 0; },
     glide: (to) => {
@@ -568,12 +765,15 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     goTo: (i) => {
       const s = order.indexOf(i);
       if (s < 0) return;
+      /* VP-126: na cascata, rola até o cartão */
+      if (view === "cascade") { cyTarget = cascadeTo(s); return; }
       target = shortestTarget(target, s, N);
       idle = 0.5; glideK = 0;
     },
     pick,
     setHover: (i) => { hovered = i; },
     active: () => {
+      if (cas > 0.5) return { index: activeC, focus: 1, slot: Math.max(0, order.indexOf(activeC)) };
       const i = activeIndex();
       const c = cards[i];
       const relQ = Math.abs(c.rel) / D;
@@ -626,9 +826,21 @@ export function createGallery(scene: THREE.Scene, camera: THREE.PerspectiveCamer
     filter: () => pendingFilter ?? filt,
     order: () => order.slice(),
     setHidden: (i, instant) => { hidden = i; if (instant) for (const c of cards) c.hide = hidden === c.index ? 1 : 0; },
-    setRoom: (on) => { roomOn = on; idle = 0.5; },
-    room: () => roomOn,
-    speed: () => Math.min(1, Math.abs(vel) * 0.22),
+    setRoom: (on) => setViewImpl(on ? "room" : "queue"),
+    room: () => view === "room",
+    setView: setViewImpl,
+    view: () => view,
+    cascade: () => cas,
+    light: () => lightV,
+    scrollBy: (px) => {
+      if (!cl) return;
+      cyTarget = clampJS(cyTarget + px * ((2 * cl.hh) / Math.max(1, innerHeight)), 0, cl.maxCy);
+    },
+    fling: (v) => {
+      if (!cl) return;
+      cyTarget = clampJS(cyTarget + v * ((2 * cl.hh) / Math.max(1, innerHeight)) * 0.32, 0, cl.maxCy);
+    },
+    speed: () => Math.min(1, Math.abs(vel) * 0.22) * (1 - cas),
     color: () => tint,
     refreshCovers: () => {
       for (const c of cards) if (c.cover && c.map.value === c.cover.tex) { drawCover(c.cover.canvas, c.project); c.cover.tex.needsUpdate = true; }

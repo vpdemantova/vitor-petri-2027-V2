@@ -109,24 +109,7 @@ export const LANE = {
   ahead: 2.2, behind: 1.2, fade: 0.9,
   /** VP-111: os de lado viram um pouco para o meio, como numa vitrine (radianos) */
   rx: 0.04, ry: -0.12,
-  /** VP-115: na troca, o que chega passa por cima (sobe) e o que sai passa por baixo (desce), como numa roda;
-      na tela, vezes a distância. Em pé, os lados já se afastam na vertical, então menos */
-  lift: 0.085, dip: 0.13, swingPortrait: 0.55,
 };
-
-/**
- * VP-115 (21/out/2026, "as animações estão bem ruins ainda"): a troca entre o da vez e o próximo. Os dois
- * passam pela mesma profundidade no meio do caminho, e ali um tem de passar à frente do outro; antes, eles
- * se sobrepunham nesse instante e a troca aparecia como um estalo. Agora, no meio do caminho, o que chega
- * está mais alto e o que sai mais baixo, sem se tocar: a troca acontece no vão entre os dois.
- * Devolve o quanto o cartão sobe (ou desce), na tela, a u lugares do foco; zero fora da troca (|u| ≥ 1).
- */
-export function laneSwing(u: number, portrait: boolean) {
-  const v = Math.abs(u);
-  if (v >= 1 || v === 0) return 0;
-  const s = Math.sin(Math.PI * v) * (portrait ? LANE.swingPortrait : 1);
-  return u > 0 ? LANE.lift * s : -LANE.dip * s;
-}
 
 /** O desenho de um lado: g, para o lado; gy, para cima (que achata depois do primeiro). v ≥ 0. */
 function laneSide(v: number, a: number) {
@@ -187,3 +170,32 @@ export function laneVisibility(u: number, n: number) {
 
 /** O texto "03 / 14" do contador. */
 export const counterText = (i: number, n: number) => `${String(i + 1).padStart(2, "0")} / ${String(n).padStart(2, "0")}`;
+
+/**
+ * A CASCATA (VP-126, 22/out/2026: "coloque um modo cascata… três tipos de views, e essa nova muda o fundo").
+ * A grade em colunas (o "masonry", o layout em cascata): cada cartão, na ordem da fila, vai para a coluna mais curta
+ * (no empate, a da esquerda), com a largura da coluna e a altura que a proporção dele pede.
+ * aspects: largura ÷ altura de cada cartão. Devolve, para cada um, a coluna, o centro (x a partir do meio da grade;
+ * y para baixo, a partir do alto dela), a largura e a altura; e a largura e a altura da grade.
+ */
+export function masonry(aspects: number[], cols: number, colW: number, gap: number) {
+  const tops: number[] = new Array(Math.max(1, cols)).fill(0);
+  const n = tops.length;
+  const width = n * colW + (n - 1) * gap;
+  const items = aspects.map((a) => {
+    let c = 0;
+    for (let i = 1; i < n; i++) if (tops[i] < tops[c] - 1e-9) c = i;
+    const w = colW, h = colW / a;
+    const item = { col: c, x: -width / 2 + c * (colW + gap) + colW / 2, y: tops[c] + h / 2, w, h };
+    tops[c] += h + gap;
+    return item;
+  });
+  return { items, width, height: items.length ? Math.max(...tops) - gap : 0 };
+}
+
+/**
+ * VP-126: a ordem em que os cartões caem na cascata (0 = o primeiro, 1 = o último): de cima para baixo e, na mesma
+ * altura, da esquerda para a direita. A mesma ordem, ao contrário, quando a cascata se desfaz.
+ */
+export const cascadeDelay = (item: { col: number; y: number; h: number }, height: number, cols: number) =>
+  clamp(((item.y - item.h / 2) / Math.max(height, 1e-6)) * 0.85 + (item.col / Math.max(1, cols - 1)) * 0.15, 0, 1);

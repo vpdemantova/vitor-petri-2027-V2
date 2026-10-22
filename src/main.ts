@@ -31,7 +31,7 @@ import { createFoot, createHint } from "./ui/foot";
 import { createShortcuts } from "./ui/shortcuts";
 import { startCompare } from "./ui/compare";
 import { switchLang } from "./ui/langswitch";
-import type { Gallery } from "./gl/gallery";
+import type { Gallery, View } from "./gl/gallery";
 
 const app = document.getElementById("app")!;
 const canvas = document.getElementById("gl") as HTMLCanvasElement;
@@ -57,7 +57,7 @@ const hint = createHint(reduced);
 const shortcuts = createShortcuts();
 let gallery: Gallery | null = null;
 const foot = createFoot({
-  onRoom: () => toggleRoom(),
+  onView: (v) => setView(v),
   onSound: () => setSound(!soundOn()),
   onLang: () => switchLang(getLang() === "en" ? "pt" : "en"),
 });
@@ -146,12 +146,18 @@ function dockSpot(w: number, h: number) {
 }
 
 /* ── as teclas de toda a página ── */
-function toggleRoom() {
+/** VP-126: as três vistas (a fila, a sala, a cascata); a cascata muda o fundo para o papel claro (html.is-light) */
+function setView(v: View) {
   if (!gallery) return;
-  gallery.setRoom(!gallery.room());
-  foot.setRoom(gallery.room());
+  gallery.setView(v);
+  foot.setView(v);
   hint.done();
 }
+function toggleRoom() {
+  if (!gallery) return;
+  setView(gallery.view() === "room" ? "queue" : "room");
+}
+const VIEWS: View[] = ["queue", "room", "cascade"];
 window.addEventListener("keydown", (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const typing = (e.target as HTMLElement).closest("input, textarea, select, [contenteditable]");
@@ -178,6 +184,7 @@ window.addEventListener("keydown", (e) => {
   else if (k === "l") switchLang(getLang() === "en" ? "pt" : "en");
   else if (k === "s" && SOUND_ENABLED) setSound(!soundOn());
   else if (k === "r" && !panels.current()) toggleRoom();
+  else if (k === "v" && !panels.current() && gallery) setView(VIEWS[(VIEWS.indexOf(gallery.view()) + 1) % VIEWS.length]);
   else if (!panels.current() && gallery) {
     if (["ArrowDown", "ArrowRight", "PageDown", "j"].includes(k)) { gallery.step(1); hint.done(); e.preventDefault(); }
     else if (["ArrowUp", "ArrowLeft", "PageUp", "k"].includes(k)) { gallery.step(-1); hint.done(); e.preventDefault(); }
@@ -210,6 +217,8 @@ async function boot() {
   const backdrop = createBackdrop(stage.scene, reduced);
   const g = createGallery(stage.scene, stage.camera, stage.renderer, reduced);
   gallery = g;
+  /* VP-126: a vista com que a página nasce (?vista=cascata, ?vista=sala) */
+  foot.setView(g.view());
   /* VP-30: o pós-processamento (?semefeitos desliga) */
   const post = params.has("semefeitos") ? null : createPost(stage.renderer, stage.scene, stage.camera, reduced);
   if (post) stage.setRender(post.render);
@@ -238,7 +247,8 @@ async function boot() {
   const input = bindInput(canvas, g, {
     blocked: () => !introDone || shortcuts.isOpen() || (!!panels.current() && panels.current() !== "index"),
     consumes: () => contact.isOpen(),
-    onTap: (hit) => { if (hit === g.active().index) openProject(hit, true); else g.goTo(hit); },
+    /* na fila e na sala, o da vez abre e os outros vêm até a vez; na cascata (VP-126), qualquer um abre */
+    onTap: (hit) => { if (g.view() === "cascade" || hit === g.active().index) openProject(hit, true); else g.goTo(hit); },
     onMove: () => hint.done(),
     onDrag: () => {},
   });
@@ -249,6 +259,7 @@ async function boot() {
   });
 
   const anchor = { x: 0, y: 0 };
+  let isLight = false;
   let hoverHit: number | null = null;
   stage.onFrame((dt) => {
     mouse.sx += (mouse.x - mouse.sx) * (1 - Math.exp(-dt * 4));
@@ -257,6 +268,11 @@ async function boot() {
     g.setPointer(mouse.sx, mouse.sy);
     g.update(dt);
     backdrop.setCard(g.color(), 0.12);
+    /* VP-126: o papel claro da cascata; as cores da página (html.is-light) viram no meio da troca do fundo */
+    const light = g.light();
+    backdrop.setLight(light);
+    post?.setLight(light);
+    if ((light > 0.5) !== isLight) { isLight = light > 0.5; document.documentElement.classList.toggle("is-light", isLight); }
     post?.setMotion(g.speed());
     particles?.update(dt);
     cursor.frame(dt);
@@ -267,7 +283,7 @@ async function boot() {
     const panel = panels.current();
     /* VP-112: espera os painéis acabarem de sair (antes, ela aparecia por cima da ficha que ainda encolhia);
        VP-113: na sala, fica parada no meio de baixo e não some com o movimento (só o nome troca) */
-    const docked = g.room();
+    const docked = g.view() !== "queue";
     const free = introDone && (!panel || panel === "index") && !panels.busy() && !contact.isOpen();
     const want = docked ? free : free && focus > 0.85 && g.anchor(anchor);
     label.frame(dt, want, anchor.x, anchor.y, docked ? dockSpot : null);
@@ -276,10 +292,12 @@ async function boot() {
 
     /* o cartão sob o mouse (só sem painel por cima) */
     if (introDone && mouse.moved && !panel) {
-      hoverHit = g.pick(mouse.x, mouse.y);
-      g.setHover(hoverHit);
+      /* com o mouse sobre a interface (o menu, o pé, a etiqueta), nenhum cartão fica "sob o mouse" (VP-127: senão o
+         cartão que passava por baixo de um botão acendia) */
       const overUi = (document.querySelector(":hover:is(.top, .label, .contact-pill, .contact-card, .foot, .keys)") !== null);
-      cursor.set(overUi ? "off" : input.dragging() ? "drag" : hoverHit === null ? "ring" : hoverHit === index ? "view" : "go");
+      hoverHit = overUi ? null : g.pick(mouse.x, mouse.y);
+      g.setHover(hoverHit);
+      cursor.set(overUi ? "off" : input.dragging() ? "drag" : hoverHit === null ? "ring" : hoverHit === index || g.view() === "cascade" ? "view" : "go");
       canvas.style.cursor = cursor.enabled ? "none" : hoverHit !== null ? "pointer" : input.dragging() ? "grabbing" : "grab";
     } else if (panel) { cursor.set("off"); hoverHit = null; g.setHover(null); }
 
@@ -310,7 +328,8 @@ async function boot() {
 function finish(g: Gallery | null, particles?: { burst: () => Promise<void>; dispose: () => void } | null) {
   const done = () => {
     if (!introDone) { introDone = true; route(currentRoute()); }
-    hint.show();
+    /* VP-126: na sala e na cascata, a etiqueta fica no meio de baixo, onde estaria a dica: a dica só aparece na fila */
+    if (!gallery || gallery.view() === "queue") hint.show();
   };
   const r = intro.finish(brand, () => { particles?.burst().then(() => particles?.dispose()); }, done);
   if (!r || !g) {
