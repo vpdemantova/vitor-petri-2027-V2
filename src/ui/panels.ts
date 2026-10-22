@@ -397,18 +397,22 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     }
     return out;
   };
+  /** as letras e as linhas da ficha (para sair por cima) */
+  const splitTargets = () => splitsBy.project.flatMap((sp) => (sp.chars.length ? sp.chars : sp.lines));
   /** a ficha entra: o título letra a letra, os parágrafos linha a linha, o resto em cascata, as outras imagens subindo */
   const revealProject = (delay: number, skipFirstShot: boolean) => {
     unsplit("project");
     const title = charsOf("project", projectPanel, ".project-title");
     const lines = linesOf("project", projectPanel, ".project-desc p, .project-process p");
-    gsap.fromTo(title, { yPercent: 108 }, { yPercent: 0, duration: 0.85, stagger: 0.018, delay, ease: "expo.out" });
-    gsap.fromTo(projectPanel.querySelectorAll(".project-meta dl > div, .project-visit, .project-player, .project-process h3"),
+    if (title.length) gsap.fromTo(title, { yPercent: 108 }, { yPercent: 0, duration: 0.85, stagger: 0.018, delay, ease: "expo.out" });
+    const meta = projectPanel.querySelectorAll(".project-meta dl > div, .project-visit, .project-player, .project-process h3");
+    if (meta.length) gsap.fromTo(meta,
       { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6, stagger: 0.045, delay: delay + 0.1, ease: "power3.out", clearProps: "transform,opacity" });
-    gsap.fromTo(lines, { yPercent: 108 }, { yPercent: 0, duration: 0.95, stagger: 0.04, delay: delay + 0.2, ease: "expo.out" });
+    if (lines.length) gsap.fromTo(lines, { yPercent: 108 }, { yPercent: 0, duration: 0.95, stagger: 0.04, delay: delay + 0.2, ease: "expo.out" });
     gsap.fromTo(projectNav, { opacity: 0 }, { opacity: 1, duration: 0.6, delay: delay + 0.35, ease: "power2.out", clearProps: "opacity" });
     const shots = [...projectPanel.querySelectorAll<HTMLElement>(".project-shots img")].slice(skipFirstShot ? 1 : 0);
-    gsap.fromTo(shots, { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 1.0, stagger: 0.09, delay: delay + 0.25, ease: "expo.out", clearProps: "transform,opacity" });
+    /* (com uma imagem só, a lista fica vazia: nada a animar) */
+    if (shots.length) gsap.fromTo(shots, { opacity: 0, y: 46 }, { opacity: 1, y: 0, duration: 1.0, stagger: 0.09, delay: delay + 0.25, ease: "expo.out", clearProps: "transform,opacity" });
   };
 
   const animIn = (kind: PanelKind, el: HTMLElement, fromQuad?: Quad | null, delay = 0, resume = false) => {
@@ -474,7 +478,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       const shots = el.querySelector<HTMLElement>(".project-shots");
       const fr = shotRect(p);
       const q0 = toQuad();
-      gsap.to(splitsBy.project.flatMap((sp) => (sp.chars.length ? sp.chars : sp.lines)), { yPercent: -108, duration: 0.24, stagger: 0.004, ease: "power2.in" });
+      if (splitTargets().length) gsap.to(splitTargets(), { yPercent: -108, duration: 0.24, stagger: 0.004, ease: "power2.in" });
       gsap.to(el.querySelectorAll(".project-info > *, .project-nav"), { opacity: 0, duration: 0.22, delay: 0.04 });
       if (q0) gsap.fromTo(el, { clipPath: clipFull(el) }, { clipPath: clipFrom(el, quadBox(q0)), duration: 0.7, ease: "expo.inOut" });
       if (fr && shots && q0) {
@@ -521,7 +525,7 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     /* VP-118: a barra não sai: só os nomes dela trocam, num esmaecer rápido */
     gsap.to(projectNav.querySelectorAll(".project-step-name"), { opacity: 0, duration: 0.16, ease: "power2.in" });
     /* VP-127: as letras e as linhas saem por cima, as imagens para o lado da fila */
-    gsap.to(splitsBy.project.flatMap((sp) => (sp.chars.length ? sp.chars : sp.lines)), { yPercent: -108, duration: 0.17, stagger: 0.003, ease: "power2.in" });
+    if (splitTargets().length) gsap.to(splitTargets(), { yPercent: -108, duration: 0.17, stagger: 0.003, ease: "power2.in" });
     gsap.to(projectPanel.querySelector(".project-shots"), { opacity: 0, x: -36 * swapDir, duration: 0.2, ease: "power2.in" });
     /* curta: o vidro não chega a ficar vazio (as novas linhas já começam a subir logo em seguida) */
     gsap.to(outEls, {
