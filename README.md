@@ -124,7 +124,7 @@ Diferenças em relação às telas:
 - **As animações da interface** são do GSAP:
   - o voo do logotipo (FLIP);
   - o Índice que sobe;
-  - o Perfil que se abre de dentro para fora;
+  - o Perfil que sobe do pé da tela, como o Índice (VP-128);
   - a ficha que nasce do cartão (a imagem sai de cima do cartão 3D com a mesma perspectiva: uma homografia em `src/ui/quad.ts`, VP-119);
   - a pílula do contato que vira cartão;
   - o nome da etiqueta, que troca deslizando.

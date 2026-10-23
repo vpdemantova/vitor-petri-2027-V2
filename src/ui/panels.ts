@@ -34,11 +34,12 @@
      perspectiva (os cantos dele na tela e uma homografia: ui/quad.ts), e
      volta para ele seguindo o cartão vivo; antes, nascia do retângulo em
      volta do cartão e começava com um salto.
-   · VP-121: o Perfil abre de dentro para fora e fecha de fora para dentro
-     por um número só (o recorte é escrito aqui a cada quadro: o navegador
-     abrevia o clip-path e a interpolação de texto do GSAP pulava, e o
-     fechamento não encolhia); reaberto no meio do fechamento, o Índice e o
-     Perfil continuam de onde estão, sem voltar ao começo.
+   · VP-121: reaberto no meio do fechamento, o Índice e o Perfil continuam
+     de onde estão, sem voltar ao começo;
+   · VP-128 (22/out/2026, "a animação do profile não deve abrir do centro,
+     mas vir de um dos cantos igual à do index"): o Perfil sobe do pé da
+     tela, como o Índice, e desce ao fechar (antes, abria do centro para
+     fora).
    Desde 22/out/2026 (VP-127, "a animação dos cards… meio fracos"): na ficha,
    o título sobe letra a letra e os parágrafos linha a linha, cada um de
    trás da sua máscara (o SplitText do GSAP, livre desde a 3.13); o
@@ -366,12 +367,6 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     return d <= n / 2 ? 1 : -1;
   };
 
-  /* VP-121: o recorte do Perfil, por um número (1 = aberto inteiro; 0 = um ponto no meio, com o canto bem redondo) */
-  const prof = { k: 0 };
-  const paintProfile = () => {
-    const i = 1 - prof.k;
-    profilePanel.style.clipPath = `inset(${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% ${(48 * i).toFixed(3)}% round ${(40 * i).toFixed(2)}px)`;
-  };
 
   /* VP-127: o texto em máscaras. Os cortes são refeitos a cada abertura (a largura e a língua podem ter mudado) e
      desfeitos ao fechar; só em elementos que a interface troca inteiros (os parágrafos, o título), para que desfazer um
@@ -425,16 +420,15 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       else gsap.fromTo(el, { yPercent: 100 }, { yPercent: 0, duration: 0.9, delay, ease: "expo.out" });
       gsap.fromTo(el.querySelectorAll(".filters label, .index-search, .index-row:not([hidden])"), { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, stagger: 0.025, delay: delay + 0.12, ease: "power3.out" });
     } else if (kind === "profile") {
-      gsap.killTweensOf(prof);
-      if (!resume) prof.k = 0;
-      gsap.set(el, { opacity: 1 });
-      paintProfile();
-      gsap.to(prof, { k: 1, duration: resume ? 0.7 : 1.0, delay: resume ? 0 : delay, ease: "expo.inOut", onUpdate: paintProfile, onComplete: () => { el.style.clipPath = ""; } });
+      /* VP-128: sobe do pé da tela, como o Índice (o Perfil não encosta no pé: desce um pouco além da própria altura,
+         para não sobrar uma faixa); reaberto no meio da saída, sobe de onde está */
+      if (resume) gsap.to(el, { yPercent: 0, y: 0, duration: 0.7, ease: "expo.out" });
+      else gsap.fromTo(el, { yPercent: 100, y: 120 }, { yPercent: 0, y: 0, duration: 0.95, delay, ease: "expo.out" });
       /* VP-127: o texto grande sobe linha a linha; as peças e as duas linhas de baixo, em cascata */
       if (!resume) {
         unsplit("profile");
-        gsap.fromTo(linesOf("profile", el, ".profile-text p"), { yPercent: 108 }, { yPercent: 0, duration: 1.0, stagger: 0.05, delay: delay + 0.4, ease: "expo.out" });
-        gsap.fromTo(el.querySelectorAll(".profile-art figure, .profile-aside"), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.08, delay: delay + 0.55, ease: "power3.out" });
+        gsap.fromTo(linesOf("profile", el, ".profile-text p"), { yPercent: 108 }, { yPercent: 0, duration: 1.0, stagger: 0.05, delay: delay + 0.28, ease: "expo.out" });
+        gsap.fromTo(el.querySelectorAll(".profile-art figure, .profile-aside"), { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.8, stagger: 0.08, delay: delay + 0.4, ease: "power3.out" });
       }
     } else if (fromQuad && shownProject) {
       /* VP-112: do cartão: o vidro cresce do retângulo dele e a própria imagem do cartão voa até o lugar dela na
@@ -464,12 +458,8 @@ export function createPanels(root: HTMLElement, opts: Opts) {
     const q = fast ? 0.65 : 1;
     /* VP-121: a saída começa a andar na hora (power3.in ficava quase parado nos primeiros 0,2 s) */
     if (kind === "index") gsap.to(el, { yPercent: 100, duration: 0.46 * q, ease: "power2.in", onComplete: done });
-    else if (kind === "profile") {
-      gsap.killTweensOf(prof);
-      paintProfile();
-      if (fast) gsap.to(el, { opacity: 0, duration: 0.3, ease: "power2.in" });
-      gsap.to(prof, { k: 0, duration: 0.5 * q, ease: "power2.in", onUpdate: paintProfile, onComplete: done });
-    }
+    /* VP-128: desce até sair pelo pé, como o Índice */
+    else if (kind === "profile") gsap.to(el, { yPercent: 100, y: 120, duration: 0.5 * q, ease: "power2.in", onComplete: done });
     else if (toQuad && shownProject) {
       /* VP-112: de volta ao cartão: o texto some, o vidro encolhe até o cartão, e a imagem da ficha voa de volta
          ao lugar dele; o cartão acende ali mesmo quando ela chega (antes, uma caixa vazia encolhia e o cartão
@@ -507,7 +497,6 @@ export function createPanels(root: HTMLElement, opts: Opts) {
       el.classList.remove("is-open");
       if (kind === "project" || kind === "profile") unsplit(kind);
       gsap.set([el, ...el.querySelectorAll(".project-info > *, .project-shots, .project-shots img")], { clearProps: "all" });
-      if (kind === "profile") prof.k = 0;
     }, to, fast);
   };
 
